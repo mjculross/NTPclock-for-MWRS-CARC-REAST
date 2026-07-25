@@ -155,5 +155,5 @@ Rev History:   11/27/20   Initial GitHub commit
                           seconds) of the WIFI/CONFIG button.
 
 NOTE: The most up-to-date details for building and loading the NTPclock firmware can be
-      found in the Software Documentation folder in this repository.
+      found in the "Software documentation" folder maintained as part of this repository.
 
