@@ -2,7 +2,7 @@ Title:         NTP Dual Clock
 Author:        (original) Bruce E. Hall, w8bh.net (Original Version)
                (current) RAHinsley (VK2ARH), MJCulross (KD5RXT)
 Date:          (original) 13 Feb 2021
-               (current) 18 Jun 2026
+               (current) 25 Jun 2026
 Hardware:      ESP32-S2-mini, with ILI9341 TFT display
 Software:      Arduino IDE (currently 1.8.19) with additional board
                packages & libraries (details below)
