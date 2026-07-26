@@ -3,8 +3,8 @@
    Author:           (original) Bruce E. Hall, w8bh.net (Original Version)
                      (current) RAHinsley (VK2ARH), MJCulross (KD5RXT)
    Date:             (original) 13 Feb 2021
-                     (current) 15 Jul 2026
-   Hardware:         ESP32-S2-mini with ILI9341 TFT display
+                     (current) 25 Jul 2026
+   Hardware:         ESP32-S2-mini or ESP32-S3-mini, with ILI9341 TFT display
    Software:         (see the README.TXT file for information on setup & required library versions)
    Legal:            Copyright (c) 2021 Bruce E. Hall.
                      Open Source under the terms of the MIT License.
@@ -22,7 +22,7 @@
    Revision History: (see the README.txt file for detailed revision history)
 */
 
-#define VERSION_TIMESTAMP "20260719-1730"
+#define VERSION_TIMESTAMP "20260725-2115"
 
 //#define GPS_TRY_REVERSED_RXTX_FIRST                                            // uncomment/activate this to try the reversed GPS RX/TX pin definition first
 //#define DISABLE_BUTTON_DEF_TIMEOUT                                             // uncomment to disable the automatic timeout on the initial button definition screen
@@ -53,6 +53,34 @@
 #define GPS_DATA_OUT_PIN    40                                                 // Data output from GPS to processor
 #define GPS_DATA_IN_PIN     38                                                 // Data input from processor to GPS
 
+
+#ifdef ESP32S3_MINI
+
+#undef BACKLIGHT_PIN
+#undef I2C_SCL
+#undef I2C_SDA
+#undef CONFIG_PIN
+#undef BRIGHT_PIN
+#undef LIGHT_SENSOR_PIN
+#undef LED_PIN
+#undef INPUT_5VDC_PIN
+#undef INPUT_12VDC_PIN
+#undef GPS_DATA_OUT_PIN
+#undef GPS_DATA_IN_PIN
+
+#define BACKLIGHT_PIN        4                                                 // Display backlight control
+#define I2C_SCL             36                                                 // BMx280 I2C Clock line
+#define I2C_SDA             35                                                 // BMx280 I2C Data line
+#define CONFIG_PIN          16                                                 // Make CONFIG changes on-the-fly
+#define BRIGHT_PIN          13                                                 // Brightness
+#define LIGHT_SENSOR_PIN     2                                                 // Light sensor analog pin
+#define LED_PIN             47                                                 // Built-in LED
+#define INPUT_5VDC_PIN       8                                                 // 5VDC voltage measurement
+#define INPUT_12VDC_PIN      7                                                 // 12VDC voltage measurement
+#define GPS_DATA_OUT_PIN    33                                                 // Data output from GPS to processor
+#define GPS_DATA_IN_PIN     37                                                 // Data input from processor to GPS
+
+#endif
 
 #ifdef ESP32S3_SUPERMINI
 
@@ -245,7 +273,7 @@ int          weatherGust            = 0;
 time_t       weatherUnixSunrise;
 time_t       weatherUnixSunset;
 
-String       weatherAppID           = DEFAULT_WEATHER_APP_ID;
+String       weatherAppID           = DEFAULT_WEATHER_APP_ID;                  // MJC: b4149a7c3430d9b73efa0671f20b163d
 String appID                = "&appid=" + weatherAppID;
 
 int32_t weatherDelayCount = 0;
@@ -750,25 +778,25 @@ void forceDefaults(boolean requireConfirm)
       // Start modifying network preferences
       prefs.begin("network", false);
 
-      prefs.putString("wifissid1", "");
-      prefs.putString("wifipass1", "");
+      prefs.putString("wifissid1", "RV_THERE_YET_2G");
+      prefs.putString("wifipass1", "817M919C8852");
 
-      prefs.putString("wifissid2", "");
-      prefs.putString("wifipass2", "");
+      prefs.putString("wifissid2", "RV_THERE_YET_SL");
+      prefs.putString("wifipass2", "817M919C8852");
 
-      prefs.putString("wifissid3", "");
-      prefs.putString("wifipass3", "");
+      prefs.putString("wifissid3", "817Culross551Home6015-2G");
+      prefs.putString("wifipass3", "1820HuntingGreenDrive");
 
-      prefs.putString("wifissid4", "");
-      prefs.putString("wifipass4", "");
+      prefs.putString("wifissid4", "k5cow");
+      prefs.putString("wifipass4", "147.28FMk5cow");
 
-      prefs.putString("wifissid5", "");
-      prefs.putString("wifipass5", "");
+      prefs.putString("wifissid5", "MJC_EVO");
+      prefs.putString("wifipass5", "817M919C8852");
 
-      prefs.putString("wifissid6", "");
-      prefs.putString("wifipass6", "");
+      prefs.putString("wifissid6", "MOTOE3C0");
+      prefs.putString("wifipass6", "acyvu46439");
 
-      prefs.putString("loginusername", "");
+      prefs.putString("loginusername", "mjculross");
       prefs.putString("loginpassword", "");
 
       prefs.putString("apName", apName);
@@ -2515,7 +2543,7 @@ void loop(void)
 
                                  prefs.end();
 
-#ifndef ESP32S3_MJC_TESTBED
+#if !defined(ESP32S3_MJC_TESTBED) && !defined(ESP32S3_MINI) && !defined(ESP32S3_SUPERMINI)
                               } else {
                                  // if GPS was just enabled, then disable Weather & Solar fetching (since they are very likely to start failing)
                                  showMode = (SHOW_MODE_TYPE)(showMode & ~SHOW_MODE_SOLAR_BIT_MASK);
@@ -6074,7 +6102,7 @@ void startButtonLoopTask(void)
 
    // Start a permanent thread to manage the button timing & detection
 
-#if defined(ESP32S3_SUPERMINI) || defined(ESP32S3_MJC_TESTBED)
+#if defined(ESP32S3_SUPERMINI) || defined(ESP32S3_MINI) || defined(ESP32S3_MJC_TESTBED)
 
    xTaskCreatePinnedToCore(buttonLoopTask, "ButtonLoopTask", 4096, NULL, TASK_PRIORITY, NULL, CPU_CORE);
 
@@ -6230,10 +6258,9 @@ void startGPS(boolean tryBothPinConfigs)
 
          myGNSS.setI2COutput(0);                                               // Turn off sentences on the I2C interface
          myGNSS.setUSBOutput(COM_TYPE_NMEA);                                   // Set the USB port to output only NMEA
-         myGNSS.setUART1Output(COM_TYPE_NMEA);                                 // Set the UART1 port output type
-         myGNSS.setUART2Output(COM_TYPE_NMEA);                                 // Set the UART2 port output type
          myGNSS.setNMEAOutputPort(gpsSS);                                      // Send standard NMEA output to the software serial port that we've initialized
 
+         myGNSS.setUART1Output(COM_TYPE_NMEA);                                 // Set the UART1 port output type
          myGNSS.saveConfiguration();                                           // Save the current settings to flash and BBR
 
          if (debugGPSinitialization)
