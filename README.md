@@ -2,7 +2,7 @@ Title:         NTP Dual Clock
 Author:        (original) Bruce E. Hall, w8bh.net (Original Version)
                (current) RAHinsley (VK2ARH), MJCulross (KD5RXT)
 Date:          (original) 13 Feb 2021
-               (current) 18 Jul 2026
+               (current) 18 Jun 2026
 Hardware:      ESP32-S2-mini, with ILI9341 TFT display
 Software:      Arduino IDE (currently 1.8.19) with additional board
                packages & libraries (details below)
@@ -10,7 +10,7 @@ Legal:         Copyright (c) 2021 Bruce E. Hall.
                Open Source under the terms of the MIT License.
 
 Description:   Dual UTC/Local NTP Clock with TFT display. Time is refreshed via
-               NTP (both) and/or GPS.  Status indicator for time freshness &
+               NTP (both) and/or GPS. Status indicator for time freshness &
                WiFi strength.
 
 Rev History:   11/27/20   Initial GitHub commit
@@ -153,7 +153,9 @@ Rev History:   11/27/20   Initial GitHub commit
                           of the BRIGHT button, clear any previously set CONFIG
                           page password with an extra-long press (more than 8
                           seconds) of the WIFI/CONFIG button.
-
-NOTE: The most up-to-date details for building and loading the NTPclock firmware can be
-      found in the "Software documentation" folder maintained as part of this repository.
-
+               07/25/26   Added support for the ESP32-S3-mini processor module (which
+                          can successfully be used in place of the ESP32-S2-mini, and
+                          includes 200k more RAM).  Using the ESP32-S3-mini allows all
+                          capabilities (solar, environmental, weather, MLS, & GPS) to
+                          be used simultaneously, with no restrictions. Fixed GPS-only
+                          to show all data (lat/lon/alt).
