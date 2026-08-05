@@ -159,3 +159,7 @@ Rev History:   11/27/20   Initial GitHub commit
                           capabilities (solar, environmental, weather, MLS, & GPS) to
                           be used simultaneously, with no restrictions. Fixed GPS-only
                           to show all data (lat/lon/alt).
+               08/05/26   Added a fix by Mike (KF5DEY) for the errant "E" on the UTC
+                          data line. Eliminated use of the LED_PIN definition (using
+                          RGB_BUILTIN & LED_BUILTIN instead, which are automatically
+                          defined with the processor selection).

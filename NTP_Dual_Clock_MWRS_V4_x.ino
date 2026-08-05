@@ -3,7 +3,6 @@
    Author:           (original) Bruce E. Hall, w8bh.net (Original Version)
                      (current) RAHinsley (VK2ARH), MJCulross (KD5RXT)
    Date:             (original) 13 Feb 2021
-                     (current) 25 Jul 2026
    Hardware:         ESP32-S2-mini or ESP32-S3-mini, with ILI9341 TFT display
    Software:         (see the README.TXT file for information on setup & required library versions)
    Legal:            Copyright (c) 2021 Bruce E. Hall.
@@ -22,7 +21,7 @@
    Revision History: (see the README.txt file for detailed revision history)
 */
 
-#define VERSION_TIMESTAMP "20260725-2115"
+#define VERSION_TIMESTAMP "20260805-1300"
 
 //#define GPS_TRY_REVERSED_RXTX_FIRST                                            // uncomment/activate this to try the reversed GPS RX/TX pin definition first
 //#define DISABLE_BUTTON_DEF_TIMEOUT                                             // uncomment to disable the automatic timeout on the initial button definition screen
@@ -47,7 +46,6 @@
 #define CONFIG_PIN          16                                                 // Make CONFIG changes on-the-fly
 #define BRIGHT_PIN           9                                                 // Brightness
 #define LIGHT_SENSOR_PIN     3                                                 // Light sensor analog pin
-#define LED_PIN             15                                                 // Built-in LED is also on D4
 #define INPUT_5VDC_PIN      10                                                 // 5VDC voltage measurement
 #define INPUT_12VDC_PIN      8                                                 // 12VDC voltage measurement
 #define GPS_DATA_OUT_PIN    40                                                 // Data output from GPS to processor
@@ -62,7 +60,6 @@
 #undef CONFIG_PIN
 #undef BRIGHT_PIN
 #undef LIGHT_SENSOR_PIN
-#undef LED_PIN
 #undef INPUT_5VDC_PIN
 #undef INPUT_12VDC_PIN
 #undef GPS_DATA_OUT_PIN
@@ -74,7 +71,6 @@
 #define CONFIG_PIN          16                                                 // Make CONFIG changes on-the-fly
 #define BRIGHT_PIN          13                                                 // Brightness
 #define LIGHT_SENSOR_PIN     2                                                 // Light sensor analog pin
-#define LED_PIN             47                                                 // Built-in LED
 #define INPUT_5VDC_PIN       8                                                 // 5VDC voltage measurement
 #define INPUT_12VDC_PIN      7                                                 // 12VDC voltage measurement
 #define GPS_DATA_OUT_PIN    33                                                 // Data output from GPS to processor
@@ -90,7 +86,6 @@
 #undef CONFIG_PIN
 #undef BRIGHT_PIN
 #undef LIGHT_SENSOR_PIN
-#undef LED_PIN
 #undef INPUT_5VDC_PIN
 #undef INPUT_12VDC_PIN
 #undef GPS_DATA_OUT_PIN
@@ -102,7 +97,6 @@
 #define CONFIG_PIN           3                                                 // Make CONFIG changes on-the-fly
 #define BRIGHT_PIN           8                                                 // Brightness
 #define LIGHT_SENSOR_PIN    12                                                 // Light sensor analog pin
-#define LED_PIN             48                                                 // Built-in LED
 #define INPUT_5VDC_PIN      11                                                 // 5VDC voltage measurement
 #define INPUT_12VDC_PIN     -1                                                 // 12VDC voltage measurement
 #define GPS_DATA_OUT_PIN     1                                                 // Data output from GPS to processor
@@ -118,7 +112,6 @@
 #undef CONFIG_PIN
 #undef BRIGHT_PIN
 #undef LIGHT_SENSOR_PIN
-#undef LED_PIN
 #undef INPUT_5VDC_PIN
 #undef INPUT_12VDC_PIN
 #undef GPS_DATA_OUT_PIN
@@ -130,7 +123,6 @@
 #define CONFIG_PIN           1                                                 // Make CONFIG changes on-the-fly
 #define BRIGHT_PIN           2                                                 // Brightness
 #define LIGHT_SENSOR_PIN    14                                                 // Light sensor analog pin
-#define LED_PIN             15                                                 // Built-in LED
 #define INPUT_5VDC_PIN      10                                                 // 5VDC voltage measurement
 #define INPUT_12VDC_PIN      8                                                 // 12VDC voltage measurement
 #define GPS_DATA_OUT_PIN     4                                                 // Data output from GPS to processor
@@ -273,7 +265,7 @@ int          weatherGust            = 0;
 time_t       weatherUnixSunrise;
 time_t       weatherUnixSunset;
 
-String       weatherAppID           = DEFAULT_WEATHER_APP_ID;                  // MJC: b4149a7c3430d9b73efa0671f20b163d
+String       weatherAppID           = DEFAULT_WEATHER_APP_ID;
 String appID                = "&appid=" + weatherAppID;
 
 int32_t weatherDelayCount = 0;
@@ -704,7 +696,7 @@ void buttonLoopTask(void *parameter)
 
 void clearDataArea(void)
 {
-   tft.fillRoundRect(80, 116, 240, 33, 10, labelBGColor);                      // Original Code
+   tft.fillRoundRect(66, 116, 254, 33, 10, labelBGColor);
    tft.drawRoundRect(1, 116, 318, 34, 10, edgeColor);                          // Title bar for UTC
    tft.drawRoundRect(1, 116, 318, 110, 10, edgeColor);                         // Draw edge around UTC
 }  // clearDataArea()
@@ -778,25 +770,25 @@ void forceDefaults(boolean requireConfirm)
       // Start modifying network preferences
       prefs.begin("network", false);
 
-      prefs.putString("wifissid1", "RV_THERE_YET_2G");
-      prefs.putString("wifipass1", "817M919C8852");
+      prefs.putString("wifissid1", "");
+      prefs.putString("wifipass1", "");
 
-      prefs.putString("wifissid2", "RV_THERE_YET_SL");
-      prefs.putString("wifipass2", "817M919C8852");
+      prefs.putString("wifissid2", "");
+      prefs.putString("wifipass2", "");
 
-      prefs.putString("wifissid3", "817Culross551Home6015-2G");
-      prefs.putString("wifipass3", "1820HuntingGreenDrive");
+      prefs.putString("wifissid3", "");
+      prefs.putString("wifipass3", "");
 
-      prefs.putString("wifissid4", "k5cow");
-      prefs.putString("wifipass4", "147.28FMk5cow");
+      prefs.putString("wifissid4", "");
+      prefs.putString("wifipass4", "");
 
-      prefs.putString("wifissid5", "MJC_EVO");
-      prefs.putString("wifipass5", "817M919C8852");
+      prefs.putString("wifissid5", "");
+      prefs.putString("wifipass5", "");
 
-      prefs.putString("wifissid6", "MOTOE3C0");
-      prefs.putString("wifipass6", "acyvu46439");
+      prefs.putString("wifissid6", "");
+      prefs.putString("wifipass6", "");
 
-      prefs.putString("loginusername", "mjculross");
+      prefs.putString("loginusername", "");
       prefs.putString("loginpassword", "");
 
       prefs.putString("apName", apName);
@@ -1875,6 +1867,12 @@ void loop(void)
       {
          uint32_t lastIntervalTime = currentTime - clockTime;
 
+         // filter out unreasonable intervals
+         if (lastIntervalTime > 2000)
+         {
+            lastIntervalTime = 1000;
+         }
+
          // adjust the next cycle to accomodate any potential difference in precise CLOCK_TIME_INTERVAL_IN_MILLIS periods
          clockTime = currentTime;
          clockTime += CLOCK_TIME_INTERVAL_IN_MILLIS - lastIntervalTime;
@@ -2710,8 +2708,6 @@ void newDualScreen(void)                                                       /
    tft.drawRoundRect(1, 1, 318, 110, 10, edgeColor);                           // Draw edge around local time
    tft.drawRoundRect(1, 116, 318, 110, 10, edgeColor);                         // Draw edge around UTC
 
-   tft.setTextDatum(TC_DATUM);
-
    tft.setTextColor(labelFGColor, labelBGColor);
    tft.drawString("B:", 216, 2, 2);
 
@@ -2721,8 +2717,6 @@ void newDualScreen(void)                                                       /
    } else {
       tft.drawNumber(brightness, 228, 2, 2);
    }
-
-   tft.setTextDatum(TC_DATUM);
 
    tft.setTextColor(labelFGColor, labelBGColor);
    tft.drawString("B:", 216, 2, 2);
@@ -3852,9 +3846,6 @@ void setup(void)
 
    pinMode(BACKLIGHT_PIN, OUTPUT);
    analogWrite(BACKLIGHT_PIN, (brightness * 32) + 15);                         // Set brightness
-
-   pinMode(LED_PIN, OUTPUT);
-   digitalWrite(LED_PIN, LOW);
 
 #ifdef RGB_BUILTIN
    rgbLedWrite(RGB_BUILTIN, 0, 0, 0);                                          // blink OFF
@@ -5254,7 +5245,7 @@ void showEnv(void)
       float tempF;
       float pressure = bmp.readPressure() / 100.0F;
 
-      String  heading = "E: ";
+      String heading = "E: ";
 
       pressure += qthAltitudeInFeetFloat / 33.864;
 
@@ -6340,9 +6331,9 @@ void stopAndWaitForever(void)
 
       if (toggle)
       {
-         digitalWrite(LED_PIN, HIGH);
+         digitalWrite(LED_BUILTIN, HIGH);
       } else {
-         digitalWrite(LED_PIN, LOW);
+         digitalWrite(LED_BUILTIN, LOW);
       }
 
       delay(250);
