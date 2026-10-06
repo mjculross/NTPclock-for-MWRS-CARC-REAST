@@ -163,3 +163,10 @@ Rev History:   11/27/20   Initial GitHub commit
                           data line. Eliminated use of the LED_PIN definition (using
                           RGB_BUILTIN & LED_BUILTIN instead, which are automatically
                           defined with the processor selection).
+               10/05/26   Added selection of units (feet/meters) for displaying GPS
+                          altitude (independent of the metric/imperial selection) as
+                          requested by Hayden (VK7HH).  Added the capability for the
+                          CARC processor target to remember whether the GPS was
+                          enabled/active when the clock was last powered off, &
+                          automatically reenable the GPS at the next power-on, if it
+                          was previously enabled/active.

@@ -5,8 +5,9 @@
 
 // activate/uncomment one of these build flags to build for a target different from the ESP32-S2-mini (default)
 //    NOTE: don't forget to also select the correct/corresponding processor type in the Arduino IDE
+#define CARC_V4
 //#define ESP32S3_SUPERMINI
-#define ESP32S3_MINI
+//#define ESP32S3_MINI
 //#define ESP32S3_MJC_TESTBED
 
 #define TFT_MOSI  11   // pin  6
@@ -19,7 +20,28 @@
 #define SCREEN_ORIENTATION           1                // Screen portrait mode:  use 1 or 3
 
 
-#ifdef ESP32S3_MINI
+#if defined CARC_V4
+
+#undef TFT_MOSI
+#undef TFT_MISO
+#undef TFT_SCLK
+#undef TFT_RST
+#undef TFT_CS
+#undef TFT_DC
+#undef SCREEN_ORIENTATION
+
+#define TFT_MOSI  11
+#define TFT_MISO  12
+#define TFT_SCLK  13
+#define TFT_RST    5
+#define TFT_CS     6
+#define TFT_DC     7
+
+#define SCREEN_ORIENTATION           1                // Screen portrait mode:  use 1 or 3
+
+#endif
+
+#if defined ESP32S3_MINI
 
 #undef TFT_MOSI
 #undef TFT_MISO

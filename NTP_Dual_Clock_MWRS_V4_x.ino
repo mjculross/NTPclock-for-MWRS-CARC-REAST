@@ -21,7 +21,7 @@
    Revision History: (see the README.txt file for detailed revision history)
 */
 
-#define VERSION_TIMESTAMP "20260805-1300"
+#define VERSION_TIMESTAMP "20261005-1900"
 
 //#define GPS_TRY_REVERSED_RXTX_FIRST                                            // uncomment/activate this to try the reversed GPS RX/TX pin definition first
 //#define DISABLE_BUTTON_DEF_TIMEOUT                                             // uncomment to disable the automatic timeout on the initial button definition screen
@@ -51,6 +51,33 @@
 #define GPS_DATA_OUT_PIN    40                                                 // Data output from GPS to processor
 #define GPS_DATA_IN_PIN     38                                                 // Data input from processor to GPS
 
+
+#ifdef CARC_V4
+
+#undef BACKLIGHT_PIN
+#undef I2C_SCL
+#undef I2C_SDA
+#undef CONFIG_PIN
+#undef BRIGHT_PIN
+#undef LIGHT_SENSOR_PIN
+#undef INPUT_5VDC_PIN
+#undef INPUT_12VDC_PIN
+#undef GPS_DATA_OUT_PIN
+#undef GPS_DATA_IN_PIN
+
+#define BACKLIGHT_PIN       38                                                 // Display backlight control
+#define I2C_SCL             17                                                 // BMx280 I2C Clock line
+#define I2C_SDA             18                                                 // BMx280 I2C Data line
+#define CONFIG_PIN           1                                                 // Make CONFIG changes on-the-fly
+#define BRIGHT_PIN           2                                                 // Brightness
+#define LIGHT_SENSOR_PIN    14                                                 // Light sensor analog pin
+#define INPUT_5VDC_PIN      10                                                 // 5VDC voltage measurement
+#define INPUT_12VDC_PIN     -1                                                 // 12VDC voltage measurement
+#define INPUT_LBO_PIN       21                                                 // LBO (Low Battery Out) input from PowerBoost 1000C
+#define GPS_DATA_OUT_PIN     4                                                 // Data output from GPS to processor
+#define GPS_DATA_IN_PIN     16                                                 // Data input from processor to GPS
+
+#endif
 
 #ifdef ESP32S3_MINI
 
@@ -116,6 +143,7 @@
 #undef INPUT_12VDC_PIN
 #undef GPS_DATA_OUT_PIN
 #undef GPS_DATA_IN_PIN
+#undef RGB_BUILTIN
 
 #define BACKLIGHT_PIN       38                                                 // Display backlight control
 #define I2C_SCL             17                                                 // BMx280 I2C Clock line
@@ -127,7 +155,7 @@
 #define INPUT_12VDC_PIN      8                                                 // 12VDC voltage measurement
 #define GPS_DATA_OUT_PIN     4                                                 // Data output from GPS to processor
 #define GPS_DATA_IN_PIN     16                                                 // Data input from processor to GPS
-
+#define RGB_BUILTIN         48                                                 // Onboard RGB LED is on pin 48 on the HOSYOND ESP32-S3
 #endif
 
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
@@ -265,7 +293,7 @@ int          weatherGust            = 0;
 time_t       weatherUnixSunrise;
 time_t       weatherUnixSunset;
 
-String       weatherAppID           = DEFAULT_WEATHER_APP_ID;
+String       weatherAppID           = DEFAULT_WEATHER_APP_ID;                  // MJC: b4149a7c3430d9b73efa0671f20b163d
 String appID                = "&appid=" + weatherAppID;
 
 int32_t weatherDelayCount = 0;
@@ -460,7 +488,9 @@ uint8_t printedTime = DEFAULT_PRINTED_TIME;
 
 #define NUMBER_OF_INCHES_PER_METER 39.37
 
+boolean qthAltUnitsInFeet = true;
 String qthAltitudeInFeet = DEFAULT_QTH_ALTITUDE_IN_FEET;
+String qthAltitudeInMeters = DEFAULT_QTH_ALTITUDE_IN_METERS;
 String temperatureOffsetInCelsius = DEFAULT_TEMPERATURE_OFFSET_IN_CELSIUS;
 uint32_t humidityOffset = DEFAULT_HUMIDITY_OFFSET;
 
@@ -609,6 +639,7 @@ void stopAndWaitForever(void);
 void switchDisplayMode(void);
 void updateBrightness(void);
 void updateDisplay(void);
+const String webAltUnitsSelector(void);
 const String webAMPMModeSelector(void);
 const String webCheckbox(boolean isSelected, const String & idname, const String & text);
 const String webColorSelector(uint16_t index);
@@ -770,25 +801,25 @@ void forceDefaults(boolean requireConfirm)
       // Start modifying network preferences
       prefs.begin("network", false);
 
-      prefs.putString("wifissid1", "");
-      prefs.putString("wifipass1", "");
+      prefs.putString("wifissid1", "RV_THERE_YET_2G");
+      prefs.putString("wifipass1", "817M919C8852");
 
-      prefs.putString("wifissid2", "");
-      prefs.putString("wifipass2", "");
+      prefs.putString("wifissid2", "RV_THERE_YET_SL");
+      prefs.putString("wifipass2", "817M919C8852");
 
-      prefs.putString("wifissid3", "");
-      prefs.putString("wifipass3", "");
+      prefs.putString("wifissid3", "817Culross551Home6015-2G");
+      prefs.putString("wifipass3", "1820HuntingGreenDrive");
 
-      prefs.putString("wifissid4", "");
-      prefs.putString("wifipass4", "");
+      prefs.putString("wifissid4", "k5cow");
+      prefs.putString("wifipass4", "147.28FMk5cow");
 
-      prefs.putString("wifissid5", "");
-      prefs.putString("wifipass5", "");
+      prefs.putString("wifissid5", "MJC_EVO");
+      prefs.putString("wifipass5", "817M919C8852");
 
-      prefs.putString("wifissid6", "");
-      prefs.putString("wifipass6", "");
+      prefs.putString("wifissid6", "MOTOE3C0");
+      prefs.putString("wifipass6", "acyvu46439");
 
-      prefs.putString("loginusername", "");
+      prefs.putString("loginusername", "mjculross");
       prefs.putString("loginpassword", "");
 
       prefs.putString("apName", apName);
@@ -1202,18 +1233,27 @@ void getGPSAltitudeUpdate(void)
       if (gps.altitude.isValid())
       {
          char altitudeInFeetStr[16] = { 0x00 };
+         char altitudeInMetersStr[16] = { 0x00 };
 
          // altitude is returned as meters * 100
          float altitudeInFeetFloat = gps.altitude.value() * NUMBER_OF_INCHES_PER_METER / 1200.0;
+         float altitudeInMetersFloat = gps.altitude.value() / 100.0;
 
          sprintf(altitudeInFeetStr, "%.2f", (float)((round(altitudeInFeetFloat * 100.0)) / 100.0));
          qthAltitudeInFeet = (String)altitudeInFeetStr;
+
+         sprintf(altitudeInMetersStr, "%.2f", (float)((round(altitudeInMetersFloat * 100.0)) / 100.0));
+         qthAltitudeInMeters = (String)altitudeInMetersStr;
 
          if (debugGPSaltitude)
          {
             Serial.print("GPS: ");
             Serial.print(qthAltitudeInFeet);
             Serial.println(" (altitude in feet)");
+
+            Serial.print("GPS: ");
+            Serial.print(qthAltitudeInMeters);
+            Serial.println(" (altitude in meters)");
          }
       }
    } else {
@@ -1897,6 +1937,12 @@ void loop(void)
 
       if (gpsActiveMode != previousGPSActiveMode)
       {
+#ifdef CARC_V4
+         prefs.begin("config", false);
+         prefs.putInt("gpsActiveMode", gpsActiveMode);                           // GPS auto/manual
+         prefs.end();
+#endif
+
          previousGPSActiveMode = gpsActiveMode;
 
          if (gpsActiveMode)
@@ -2024,7 +2070,12 @@ void loop(void)
       }
 
       show5VDC(225, 16);
+
+#ifndef CARC_V4
+
       show12VDC(274, 16);
+
+#endif
 
       static int8_t previousGPSFixState = GPS_NO_FIX;
       static int8_t previousGPSSatelliteCount = 0;
@@ -2043,8 +2094,8 @@ void loop(void)
          // check GPS position
          getGPSPositionUpdate();
 
-         // if GPS fix state changes, or if the number of satellites increases (to more than 3), then re-sync time
-         if ((previousGPSFixState != gpsFixState) || ((gpsSatelliteCount > previousGPSSatelliteCount) && (gpsSatelliteCount > 3)))
+         // if GPS fix state changes, or if the number of satellites increases (to 3 or more), then re-sync time
+         if ((previousGPSFixState != gpsFixState) || ((gpsSatelliteCount > previousGPSSatelliteCount) && (gpsSatelliteCount >= 3)))
          {
             // sync time to the nearest second
             getGPSTimeUpdate(true);
@@ -2530,6 +2581,12 @@ void loop(void)
                            {
                               gpsActiveMode = !gpsActiveMode;
 
+#ifdef CARC_V4
+                              prefs.begin("config", false);
+                              prefs.putInt("gpsActiveMode", gpsActiveMode);                           // GPS auto/manual
+                              prefs.end();
+#endif
+
                               // if the GPS was just disabled, then save whatever the current LAT/LON/ALT may be for future use
                               if (!gpsActiveMode)
                               {
@@ -2538,10 +2595,11 @@ void loop(void)
                                  prefs.putString("gpsManualLat", gpsManualLat);
                                  prefs.putString("gpsManualLon", gpsManualLon);
                                  prefs.putString("qthaltft", qthAltitudeInFeet);
+                                 prefs.putString("qthalt", qthAltitudeInMeters);
 
                                  prefs.end();
 
-#if !defined(ESP32S3_MJC_TESTBED) && !defined(ESP32S3_MINI) && !defined(ESP32S3_SUPERMINI)
+#if !defined(ESP32S3_MJC_TESTBED) && !defined(ESP32S3_MINI) && !defined(ESP32S3_SUPERMINI) && !defined(CARC_V4)
                               } else {
                                  // if GPS was just enabled, then disable Weather & Solar fetching (since they are very likely to start failing)
                                  showMode = (SHOW_MODE_TYPE)(showMode & ~SHOW_MODE_SOLAR_BIT_MASK);
@@ -2558,6 +2616,13 @@ void loop(void)
                               if (gpsFixState != GPS_3D_FIX)
                               {
                                  gpsActiveMode = false;
+
+#ifdef CARC_V4
+                                 prefs.begin("config", false);
+                                 prefs.putInt("gpsActiveMode", gpsActiveMode);                           // GPS auto/manual
+                                 prefs.end();
+#endif
+
                                  gpsFixState = GPS_NO_FIX;
                                  gpsSatelliteCount = 0;
 
@@ -3101,6 +3166,16 @@ void readSettings(void)
       needAppIDFlag = false;
    }
 
+#ifdef CARC_V4
+   if (prefs.isKey("gpsActiveMode"))
+   {
+      gpsActiveMode = prefs.getInt("gpsActiveMode", false);
+   } else {
+      gpsActiveMode = false;
+      prefs.putInt("gpsActiveMode", false);
+   }
+#endif
+
    if (prefs.isKey("gpsManualLat"))
    {
       gpsManualLat = prefs.getString("gpsManualLat", latDefault);
@@ -3115,6 +3190,14 @@ void readSettings(void)
    } else {
       gpsManualLon = lonDefault;
       prefs.putString("gpsManualLon", gpsManualLon);
+   }
+
+   if (prefs.isKey("qthAltFeet"))
+   {
+      qthAltUnitsInFeet = prefs.getInt("qthAltFeet", true);
+   } else {
+      qthAltUnitsInFeet = true;
+      prefs.putInt("qthAltFeet", true);
    }
 
    if (prefs.isKey("decimals"))
@@ -3339,6 +3422,14 @@ void readSettings(void)
    } else {
       qthAltitudeInFeet = DEFAULT_QTH_ALTITUDE_IN_FEET;
       prefs.putString("qthaltft", qthAltitudeInFeet);
+   }
+
+   if (prefs.isKey("qthaltm"))
+   {
+      qthAltitudeInMeters = prefs.getString("qthaltm", DEFAULT_QTH_ALTITUDE_IN_METERS);
+   } else {
+      qthAltitudeInMeters = DEFAULT_QTH_ALTITUDE_IN_METERS;
+      prefs.putString("qthaltm", qthAltitudeInMeters);
    }
 
    if (prefs.isKey("tempoffset"))
@@ -3847,6 +3938,12 @@ void setup(void)
    pinMode(BACKLIGHT_PIN, OUTPUT);
    analogWrite(BACKLIGHT_PIN, (brightness * 32) + 15);                         // Set brightness
 
+#ifdef CARC_V4
+
+   pinMode(INPUT_LBO_PIN, INPUT);
+
+#endif
+
 #ifdef RGB_BUILTIN
    rgbLedWrite(RGB_BUILTIN, 0, 0, 0);                                          // blink OFF
 #endif
@@ -3855,7 +3952,7 @@ void setup(void)
    digitalWrite(LED_BUILTIN, LOW);                                             // blink OFF
 #endif
 
-#if defined(ESP32S3_SUPERMINI) || defined(ESP32S3_MJC_TESTBED)
+#if defined(ESP32S3_SUPERMINI) || defined(ESP32S3_MJC_TESTBED) || defined(CARC_V4)
 
    // Start I2C with defined SDA/SCL pins
    Wire.begin(I2C_SDA, I2C_SCL);
@@ -4088,8 +4185,40 @@ void show5VDC(uint16_t x, uint16_t y)
       {
          sprintf(ps_five_dc, "%.1f%c", ((round(fiveVoltAverage * 10.0)) / 10.0), 'V');
 
-         tft.setTextColor(labelFGColor, labelBGColor);
+#ifdef CARC_V4
 
+         if (digitalRead(INPUT_LBO_PIN) == HIGH)                               // LBO pin goes low when battery needs to be charged
+         {
+            tft.setTextColor(labelFGColor, labelBGColor);
+            tft.drawString(ps_five_dc, x, y, 2);
+         } else {
+            tft.setTextColor(lostColor, labelBGColor);
+            tft.drawString("LOW", x, y, 2);
+         }
+
+         if (debugSupplyVoltage)
+         {
+            sprintf(ps_five_dc, "%.3f%c", ((round((fiveVoltAverage / fiveVoltCorrectionFloat) * 1000.0)) / 1000.0), 'V');
+
+            Serial.print("Battery voltage measured:   ");
+            Serial.println(ps_five_dc);
+
+            sprintf(ps_five_dc, "%.3f%c", ((round(fiveVoltAverage * 1000.0)) / 1000.0), 'V');
+
+            Serial.print("Battery voltage displayed:  ");
+            Serial.println(ps_five_dc);
+
+            if (digitalRead(INPUT_LBO_PIN) == HIGH)
+            {
+               Serial.println("LBO signal is HIGH (battery OK)");
+            } else {
+               Serial.println("LBO signal is LOW (battery needs to be charged)");
+            }
+         }
+
+#else
+
+         tft.setTextColor(labelFGColor, labelBGColor);
          tft.drawString(ps_five_dc, x, y, 2);
 
          if (debugSupplyVoltage)
@@ -4104,6 +4233,9 @@ void show5VDC(uint16_t x, uint16_t y)
             Serial.print("5VDC supply displayed:  ");
             Serial.println(ps_five_dc);
          }
+
+#endif
+
       }
 
       tft.setTextDatum(TL_DATUM);
@@ -4113,12 +4245,25 @@ void show5VDC(uint16_t x, uint16_t y)
 
 void showAltitude(void)
 {
-   String headings = "Alt (ft):";
+   String headings = String();
+
+   if (qthAltUnitsInFeet)
+   {
+      headings = "Alt (ft):";
+   } else {
+      headings = "Alt (m):";
+   }
 
    tft.setTextColor (labelFGColor, labelBGColor);
    tft.drawString (headings, 80, 123, 4);
    tft.setTextColor(normalColor, labelBGColor);
-   tft.drawString (qthAltitudeInFeet, 160, 123, 4);
+
+   if (qthAltUnitsInFeet)
+   {
+      tft.drawString (qthAltitudeInFeet, 160, 123, 4);
+   } else {
+      tft.drawString (qthAltitudeInMeters, 160, 123, 4);
+   }
 
    tft.setTextColor(labelFGColor, labelBGColor);
 }  // showAltitude()
@@ -6093,7 +6238,7 @@ void startButtonLoopTask(void)
 
    // Start a permanent thread to manage the button timing & detection
 
-#if defined(ESP32S3_SUPERMINI) || defined(ESP32S3_MINI) || defined(ESP32S3_MJC_TESTBED)
+#if defined(ESP32S3_SUPERMINI) || defined(ESP32S3_MINI) || defined(ESP32S3_MJC_TESTBED) || defined(CARC_V4)
 
    xTaskCreatePinnedToCore(buttonLoopTask, "ButtonLoopTask", 4096, NULL, TASK_PRIORITY, NULL, CPU_CORE);
 
@@ -6302,6 +6447,12 @@ void startGPS(boolean tryBothPinConfigs)
       gpsSatelliteCount = 0;
    }
 
+#ifdef CARC_V4
+   prefs.begin("config", false);
+   prefs.putInt("gpsActiveMode", gpsActiveMode);                           // GPS auto/manual
+   prefs.end();
+#endif
+
    tft.setTextDatum(TL_DATUM);
 }  // startGPS()
 
@@ -6477,6 +6628,23 @@ void updateDisplay(void)
       }
    }
 }  // updateDisplay()
+
+
+const String webAltUnitsSelector(void)
+{
+   String result = String();
+
+   if (qthAltUnitsInFeet)
+   {
+      result += "<OPTION VALUE='1' SELECTED> Alt Units In Feet</OPTION>";
+      result += "<OPTION VALUE='0'> Alt Units In Meters</OPTION>";
+   } else {
+      result += "<OPTION VALUE='1'> Alt Units In Feet</OPTION>";
+      result += "<OPTION VALUE='0' SELECTED> Alt Units In Meters</OPTION>";
+   }
+
+   return (result);
+}  // webAltUnitsSelector()
 
 
 const String webAMPMModeSelector(void)
@@ -6708,6 +6876,25 @@ const String webConfigPage()
                       "<TD><CLASS='LABEL'>GPS Longitude</TD>"
                       "<TD>" + webInputField("gpslon", gpsManualLon) + "</TD>"
                       "</TR>") +
+             "<TR><TH COLSPAN=2 CLASS='HEADING'>Display GPS Altitude Units (feet / meters)</TH></TR>"
+             "<TR>"
+             "<TD><CLASS='LABEL'>Display GPS Altitude Units</TD>"
+             "<TD>"
+             "<SELECT NAME='altunits'>" + webAltUnitsSelector() + "</SELECT>"
+             "</TD>"
+             "</TR>"
+             + String(gpsActiveMode ? "" :
+                      String(qthAltUnitsInFeet ?
+                             "<TR><TH COLSPAN=2 CLASS='HEADING'>QTH Altitude In Feet</TH></TR>"
+                             "<TR>"
+                             "<TD><CLASS='LABEL'><BR>Altitude At Current QTH<BR>(Entered In Feet)</TD>"
+                             "<TD>" + webInputField("qthaltft", qthAltitudeInFeet) + "</TD>"
+                             "</TR>" :
+                             "<TR><TH COLSPAN=2 CLASS='HEADING'>QTH Altitude In Meters</TH></TR>"
+                             "<TR>"
+                             "<TD><CLASS='LABEL'><BR>Altitude At Current QTH<BR>(Entered In Meters)</TD>"
+                             "<TD>" + webInputField("qthaltm", qthAltitudeInMeters) + "</TD>"
+                             "</TR>")) +
              "<TR><TH COLSPAN=2 CLASS='HEADING'># Lat/Lon Decimal Places</TH></TR>"
              "<TR>"
              "<TD><CLASS='LABEL'>Max Number of Decimal<BR>Places To Show In Lat/Lon<BR>For Weather Display (1-6)</TD>"
@@ -6782,6 +6969,21 @@ const String webConfigPage()
              "<TD><CLASS='LABEL'>Date (day) Is Displayed<BR>Above The Month</TD>"
              "<TD>" + webCheckbox(dateAboveMonth, "dtovermo", "Date Above Month") + "</TD>"
              "</TR>"
+
+#ifdef CARC_V4
+
+             "<TR><TH COLSPAN=2 CLASS='HEADING'>Battery Voltage Display</TH></TR>"
+             "<TR>"
+             "<TD><CLASS='LABEL'>Battery Voltage Measurement<BR>Is Displayed</TD>"
+             "<TD>" + webCheckbox(fiveVoltDisplay, "show5vdc", "Show Battery Volts") + "</TD>"
+             "</TR>"
+             "<TR>"
+             "<TD><CLASS='LABEL'>Battery Voltage Measurement<BR>Correction/Calibration Factor<BR>(Default Value = 1.0)</TD>"
+             "<TD>" + webInputField("fivevoltcorr", fiveVoltCorrection) + "</TD>"
+             "</TR>"
+
+#else
+
              "<TR><TH COLSPAN=2 CLASS='HEADING'>Voltage Measurement Display</TH></TR>"
              "<TR>"
              "<TD><CLASS='LABEL'>5VDC Supply Measurement<BR>Is Displayed</TD>"
@@ -6799,6 +7001,9 @@ const String webConfigPage()
              "<TD><CLASS='LABEL'>12VDC Supply Measurement<BR>Correction/Calibration Factor<BR>(Default Value = 1.0)</TD>"
              "<TD>" + webInputField("twelvevoltcorr", twelveVoltCorrection) + "</TD>"
              "</TR>"
+
+#endif
+
              "<TR><TH COLSPAN=2 CLASS='HEADING'>Printed Time Selection</TH></TR>"
              "<TR>"
              "<TD><CLASS='LABEL'>Printed Time</TD>"
@@ -6816,12 +7021,6 @@ const String webConfigPage()
              "<TD><CLASS='LABEL'>Show Selected Data Header<BR>Between Data Groups</TD>"
              "<TD>" + webCheckbox(showDataHeaderBetweenDataGroups, "showDataHeader", "Show Header") + "</TD>"
              "</TR>"
-             + String(gpsActiveMode ? "" :
-                      "<TR><TH COLSPAN=2 CLASS='HEADING'>QTH Altitude In Feet</TH></TR>"
-                      "<TR>"
-                      "<TD><CLASS='LABEL'><BR>Altitude At Current QTH<BR>(Entered In Feet)</TD>"
-                      "<TD>" + webInputField("qthaltft", qthAltitudeInFeet) + "</TD>"
-                      "</TR>") +
              "<TR><TH COLSPAN=2 CLASS='HEADING'>Temperature Offset</TH></TR>"
              "<TR>"
              "<TD><CLASS='LABEL'><BR>Temperature Offset<BR>(Entered In Degrees Celsius)</TD>"
@@ -7678,6 +7877,10 @@ void webSetConfig(AsyncWebServerRequest * request)
    {
       String gpsmode = request->getParam("gpsmode", true)->value();
       gpsActiveMode = gpsmode.toInt();
+
+#ifdef CARC_V4
+      prefs.putInt("gpsActiveMode", gpsActiveMode);                           // GPS auto/manual
+#endif
    }
 
    // Save GPS manual latitude
@@ -7696,6 +7899,15 @@ void webSetConfig(AsyncWebServerRequest * request)
       gpsManualLon = gpslon;
 
       prefs.putString("gpsManualLon", gpsManualLon);                           // GPS manual mode longitude
+   }
+
+   // Save GPS altitude units selection
+   if (request->hasParam("altunits", true))
+   {
+      String altunits = request->getParam("altunits", true)->value();
+      qthAltUnitsInFeet = altunits.toInt();
+
+      prefs.putInt("qthAltFeet", qthAltUnitsInFeet);                           // GPS altitude units feet/meters
    }
 
    // Save # Decimal Places to Use for Weather Lat/Lon
@@ -7851,12 +8063,20 @@ void webSetConfig(AsyncWebServerRequest * request)
    showDataHeaderBetweenDataGroups = (boolean)(request->hasParam("showDataHeader", true));
    prefs.putBool("showDataHeader", showDataHeaderBetweenDataGroups);
 
-   // save the QTH altitude selection
+   // save the QTH altitude selection in feet
    if (request->hasParam("qthaltft", true))
    {
       qthAltitudeInFeet = request->getParam("qthaltft", true)->value();
 
       prefs.putString("qthaltft", qthAltitudeInFeet);
+   }
+
+   // save the QTH altitude selection in meters
+   if (request->hasParam("qthaltm", true))
+   {
+      qthAltitudeInMeters = request->getParam("qthaltm", true)->value();
+
+      prefs.putString("qthaltm", qthAltitudeInMeters);
    }
 
    // save the temperature offset selection

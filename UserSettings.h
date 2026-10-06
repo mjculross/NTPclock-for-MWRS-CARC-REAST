@@ -88,6 +88,7 @@ typedef enum
 */
 
 #define DEFAULT_QTH_ALTITUDE_IN_FEET         "700.0"  // Altitude in feet at QTH - set this to current altitude in feet
+#define DEFAULT_QTH_ALTITUDE_IN_METERS       "213.4"  // Altitude in meters at QTH - set this to current altitude in meters
 #define DEFAULT_TEMPERATURE_OFFSET_IN_CELSIUS  "0.0"  // BME280 temperature offset in Celcius, to be added to reported value
 #define DEFAULT_HUMIDITY_OFFSET                    0  // Humidity offset to calibrate BME280, if required
 
