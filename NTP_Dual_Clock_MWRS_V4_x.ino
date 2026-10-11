@@ -21,7 +21,7 @@
    Revision History: (see the README.txt file for detailed revision history)
 */
 
-#define VERSION_TIMESTAMP "20261005-1900"
+#define VERSION_TIMESTAMP "20261011-1000"
 
 //#define GPS_TRY_REVERSED_RXTX_FIRST                                            // uncomment/activate this to try the reversed GPS RX/TX pin definition first
 //#define DISABLE_BUTTON_DEF_TIMEOUT                                             // uncomment to disable the automatic timeout on the initial button definition screen
@@ -40,6 +40,17 @@
 #include <ESPAsyncWebServer.h>
 
 
+#undef BACKLIGHT_PIN
+#undef I2C_SCL
+#undef I2C_SDA
+#undef CONFIG_PIN
+#undef BRIGHT_PIN
+#undef LIGHT_SENSOR_PIN
+#undef INPUT_5VDC_PIN
+#undef INPUT_12VDC_PIN
+#undef GPS_DATA_OUT_PIN
+#undef GPS_DATA_IN_PIN
+
 #define BACKLIGHT_PIN        5                                                 // Display backlight control
 #define I2C_SCL             35                                                 // BMx280 I2C Clock line
 #define I2C_SDA             33                                                 // BMx280 I2C Data line
@@ -52,18 +63,7 @@
 #define GPS_DATA_IN_PIN     38                                                 // Data input from processor to GPS
 
 
-#ifdef CARC_V4
-
-#undef BACKLIGHT_PIN
-#undef I2C_SCL
-#undef I2C_SDA
-#undef CONFIG_PIN
-#undef BRIGHT_PIN
-#undef LIGHT_SENSOR_PIN
-#undef INPUT_5VDC_PIN
-#undef INPUT_12VDC_PIN
-#undef GPS_DATA_OUT_PIN
-#undef GPS_DATA_IN_PIN
+#ifdef CARC_V4_ESP32S3_MINI
 
 #define BACKLIGHT_PIN       38                                                 // Display backlight control
 #define I2C_SCL             17                                                 // BMx280 I2C Clock line
@@ -79,18 +79,7 @@
 
 #endif
 
-#ifdef ESP32S3_MINI
-
-#undef BACKLIGHT_PIN
-#undef I2C_SCL
-#undef I2C_SDA
-#undef CONFIG_PIN
-#undef BRIGHT_PIN
-#undef LIGHT_SENSOR_PIN
-#undef INPUT_5VDC_PIN
-#undef INPUT_12VDC_PIN
-#undef GPS_DATA_OUT_PIN
-#undef GPS_DATA_IN_PIN
+#ifdef MWRS_ESP32S3_MINI
 
 #define BACKLIGHT_PIN        4                                                 // Display backlight control
 #define I2C_SCL             36                                                 // BMx280 I2C Clock line
@@ -105,58 +94,23 @@
 
 #endif
 
-#ifdef ESP32S3_SUPERMINI
 
-#undef BACKLIGHT_PIN
-#undef I2C_SCL
-#undef I2C_SDA
-#undef CONFIG_PIN
-#undef BRIGHT_PIN
-#undef LIGHT_SENSOR_PIN
-#undef INPUT_5VDC_PIN
-#undef INPUT_12VDC_PIN
-#undef GPS_DATA_OUT_PIN
-#undef GPS_DATA_IN_PIN
-
-#define BACKLIGHT_PIN       13                                                 // Display backlight control
-#define I2C_SCL              4                                                 // BMx280 I2C Clock line
-#define I2C_SDA              5                                                 // BMx280 I2C Data line
-#define CONFIG_PIN           3                                                 // Make CONFIG changes on-the-fly
-#define BRIGHT_PIN           8                                                 // Brightness
-#define LIGHT_SENSOR_PIN    12                                                 // Light sensor analog pin
-#define INPUT_5VDC_PIN      11                                                 // 5VDC voltage measurement
-#define INPUT_12VDC_PIN     -1                                                 // 12VDC voltage measurement
-#define GPS_DATA_OUT_PIN     1                                                 // Data output from GPS to processor
-#define GPS_DATA_IN_PIN      2                                                 // Data input from processor to GPS
-
+#if defined(ARDUINO_LOLIN_S3_MINI)
+#pragma message "Processor: LOLIN S3 Mini (selected in Arduino IDE)"
 #endif
 
-#ifdef ESP32S3_MJC_TESTBED
-
-#undef BACKLIGHT_PIN
-#undef I2C_SCL
-#undef I2C_SDA
-#undef CONFIG_PIN
-#undef BRIGHT_PIN
-#undef LIGHT_SENSOR_PIN
-#undef INPUT_5VDC_PIN
-#undef INPUT_12VDC_PIN
-#undef GPS_DATA_OUT_PIN
-#undef GPS_DATA_IN_PIN
-#undef RGB_BUILTIN
-
-#define BACKLIGHT_PIN       38                                                 // Display backlight control
-#define I2C_SCL             17                                                 // BMx280 I2C Clock line
-#define I2C_SDA             18                                                 // BMx280 I2C Data line
-#define CONFIG_PIN           1                                                 // Make CONFIG changes on-the-fly
-#define BRIGHT_PIN           2                                                 // Brightness
-#define LIGHT_SENSOR_PIN    14                                                 // Light sensor analog pin
-#define INPUT_5VDC_PIN      10                                                 // 5VDC voltage measurement
-#define INPUT_12VDC_PIN      8                                                 // 12VDC voltage measurement
-#define GPS_DATA_OUT_PIN     4                                                 // Data output from GPS to processor
-#define GPS_DATA_IN_PIN     16                                                 // Data input from processor to GPS
-#define RGB_BUILTIN         48                                                 // Onboard RGB LED is on pin 48 on the HOSYOND ESP32-S3
+#if defined(ARDUINO_LOLIN_S2_MINI)
+#pragma message "Processor: LOLIN S2 Mini (selected in Arduino IDE)"
 #endif
+
+#if defined(CARC_V4_ESP32S3_MINI)
+#pragma message "Target: CARC_V4_ESP32S3_MINI (selected in tft_setup.h)"
+#endif
+
+#if defined(MWRS_ESP32S3_MINI)
+#pragma message "Target: MWRS_ESP32S3_MINI (selected in tft_setup.h)"
+#endif
+
 
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 
@@ -293,7 +247,7 @@ int          weatherGust            = 0;
 time_t       weatherUnixSunrise;
 time_t       weatherUnixSunset;
 
-String       weatherAppID           = DEFAULT_WEATHER_APP_ID;                  // MJC: b4149a7c3430d9b73efa0671f20b163d
+String       weatherAppID           = DEFAULT_WEATHER_APP_ID;
 String appID                = "&appid=" + weatherAppID;
 
 int32_t weatherDelayCount = 0;
@@ -1937,7 +1891,7 @@ void loop(void)
 
       if (gpsActiveMode != previousGPSActiveMode)
       {
-#ifdef CARC_V4
+#ifdef CARC_V4_ESP32S3_MINI
          prefs.begin("config", false);
          prefs.putInt("gpsActiveMode", gpsActiveMode);                           // GPS auto/manual
          prefs.end();
@@ -2071,7 +2025,7 @@ void loop(void)
 
       show5VDC(225, 16);
 
-#ifndef CARC_V4
+#ifndef CARC_V4_ESP32S3_MINI
 
       show12VDC(274, 16);
 
@@ -2581,7 +2535,7 @@ void loop(void)
                            {
                               gpsActiveMode = !gpsActiveMode;
 
-#ifdef CARC_V4
+#ifdef CARC_V4_ESP32S3_MINI
                               prefs.begin("config", false);
                               prefs.putInt("gpsActiveMode", gpsActiveMode);                           // GPS auto/manual
                               prefs.end();
@@ -2599,7 +2553,7 @@ void loop(void)
 
                                  prefs.end();
 
-#if !defined(ESP32S3_MJC_TESTBED) && !defined(ESP32S3_MINI) && !defined(ESP32S3_SUPERMINI) && !defined(CARC_V4)
+#if !defined(MWRS_ESP32S3_MINI) && !defined(CARC_V4_ESP32S3_MINI)
                               } else {
                                  // if GPS was just enabled, then disable Weather & Solar fetching (since they are very likely to start failing)
                                  showMode = (SHOW_MODE_TYPE)(showMode & ~SHOW_MODE_SOLAR_BIT_MASK);
@@ -2617,7 +2571,7 @@ void loop(void)
                               {
                                  gpsActiveMode = false;
 
-#ifdef CARC_V4
+#ifdef CARC_V4_ESP32S3_MINI
                                  prefs.begin("config", false);
                                  prefs.putInt("gpsActiveMode", gpsActiveMode);                           // GPS auto/manual
                                  prefs.end();
@@ -2742,7 +2696,12 @@ void netInit(void)
 
 void newDualScreen(void)                                                       // Displays the fixed parts
 {
-   String verStr = String("rev: ") + VERSION_TIMESTAMP;
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S3-mini]");
+#endif
+#if defined(ARDUINO_LOLIN_S2_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S2-mini]");
+#endif
 
    tft.setTextDatum(TC_DATUM);
 
@@ -3166,7 +3125,7 @@ void readSettings(void)
       needAppIDFlag = false;
    }
 
-#ifdef CARC_V4
+#ifdef CARC_V4_ESP32S3_MINI
    if (prefs.isKey("gpsActiveMode"))
    {
       gpsActiveMode = prefs.getInt("gpsActiveMode", false);
@@ -3677,7 +3636,12 @@ boolean selectForceDefaults(void)
    tft.drawString("RIGHT (WIFI/CONFIG) = CONFIRM", 160, 170);
    tft.drawString("LEFT (BRIGHT) = CANCEL", 160, 140);
 
-   String verStr = String("rev: ") + VERSION_TIMESTAMP;
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S3-mini]");
+#endif
+#if defined(ARDUINO_LOLIN_S2_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S2-mini]");
+#endif
    tft.drawString(verStr, 160, 226, 2);                                        // put version info on the screen
 
    tft.setTextColor(warningColor);
@@ -3743,7 +3707,12 @@ int8_t selectGPSResetType(void)
    tft.drawString("PRESS RIGHT (WIFI/CONFIG) TO", 160, 150);
    tft.drawString("FACTORY RESET THE GPS", 160, 170);
 
-   String verStr = String("rev: ") + VERSION_TIMESTAMP;
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S3-mini]");
+#endif
+#if defined(ARDUINO_LOLIN_S2_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S2-mini]");
+#endif
    tft.drawString(verStr, 160, 226, 2);                                        // put version info on the screen
 
    tft.setTextColor(warningColor);
@@ -3829,7 +3798,12 @@ boolean selectReboot(void)
    tft.drawString("LEFT (BRIGHT) = REBOOT", 160, 150);
    tft.drawString("RIGHT (WIFI/CONFIG) = WIFI INFO", 160, 180);
 
-   String verStr = String("rev: ") + VERSION_TIMESTAMP;
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S3-mini]");
+#endif
+#if defined(ARDUINO_LOLIN_S2_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S2-mini]");
+#endif
    tft.drawString(verStr, 160, 226, 2);                                        // put version info on the screen
 
    tft.setTextColor(warningColor);
@@ -3938,7 +3912,7 @@ void setup(void)
    pinMode(BACKLIGHT_PIN, OUTPUT);
    analogWrite(BACKLIGHT_PIN, (brightness * 32) + 15);                         // Set brightness
 
-#ifdef CARC_V4
+#ifdef CARC_V4_ESP32S3_MINI
 
    pinMode(INPUT_LBO_PIN, INPUT);
 
@@ -3952,7 +3926,7 @@ void setup(void)
    digitalWrite(LED_BUILTIN, LOW);                                             // blink OFF
 #endif
 
-#if defined(ESP32S3_SUPERMINI) || defined(ESP32S3_MJC_TESTBED) || defined(CARC_V4)
+#if defined(CARC_V4_ESP32S3_MINI)
 
    // Start I2C with defined SDA/SCL pins
    Wire.begin(I2C_SDA, I2C_SCL);
@@ -4047,12 +4021,6 @@ void setup(void)
 
    Serial.println("");
    Serial.println("BME280 test");
-
-#if defined(ESP32S3_SUPERMINI) || defined(ESP32S3_MJC_TESTBED)
-
-   Wire.setPins(I2C_SDA, I2C_SCL);
-
-#endif
 
    BME280_available = bme.begin();                                             // Attempt to start it up on the default address
 
@@ -4185,7 +4153,7 @@ void show5VDC(uint16_t x, uint16_t y)
       {
          sprintf(ps_five_dc, "%.1f%c", ((round(fiveVoltAverage * 10.0)) / 10.0), 'V');
 
-#ifdef CARC_V4
+#ifdef CARC_V4_ESP32S3_MINI
 
          if (digitalRead(INPUT_LBO_PIN) == HIGH)                               // LBO pin goes low when battery needs to be charged
          {
@@ -4287,7 +4255,12 @@ void showAppIDNagScreen(void)
    tft.drawString(F("then use this clock's web interface"), 160, 180, 2);
    tft.drawString(F("to confgure it with your new API Key"), 160, 200, 2);
 
-   String verStr = String("rev: ") + VERSION_TIMESTAMP;
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S3-mini]");
+#endif
+#if defined(ARDUINO_LOLIN_S2_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S2-mini]");
+#endif
    tft.drawString(verStr, 160, 226, 2);                                        // put version info on the screen
 
    tft.setTextDatum(TL_DATUM);
@@ -4348,7 +4321,12 @@ void showButtonDefinitions(void)
    tft.drawString(F("Long-click"), 50, 185, 2);
    tft.drawString(F("Reboot/WiFi Info"), 160, 185, 2);
 
-   String verStr = String("rev: ") + VERSION_TIMESTAMP;
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S3-mini]");
+#endif
+#if defined(ARDUINO_LOLIN_S2_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S2-mini]");
+#endif
    tft.setTextDatum(TC_DATUM);
    tft.drawString(verStr, 160, 226, 2);                                        // put version info on the screen
 
@@ -5719,7 +5697,12 @@ void showSFI(void)
 
 void showSplash(void)
 {
-   String versionStr = String("dated: ") + VERSION_TIMESTAMP;
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S3-mini]");
+#endif
+#if defined(ARDUINO_LOLIN_S2_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S2-mini]");
+#endif
 
    tft.fillScreen(screenBGColor);
    tft.setTextDatum(TC_DATUM);
@@ -5731,7 +5714,7 @@ void showSplash(void)
    tft.setFreeFont(&FreeSerifBold9pt7b);
    tft.drawString("Original Design by: W8BH", 160, 60);
    tft.drawString("Cowtown ARC Version 4.x", 160, 120);
-   tft.drawString(versionStr, 160, 140, 2);
+   tft.drawString(verStr, 160, 140, 2);
 
    tft.setTextColor(labelFGColor);
 
@@ -6031,7 +6014,12 @@ void showWiFiInfo(void)
 
    tft.setTextDatum(TC_DATUM);
 
-   String verStr = String("rev: ") + VERSION_TIMESTAMP;
+#if defined(ARDUINO_LOLIN_S3_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S3-mini]");
+#endif
+#if defined(ARDUINO_LOLIN_S2_MINI)
+   String verStr = String("rev: ") + VERSION_TIMESTAMP + String(" [ESP32-S2-mini]");
+#endif
    tft.drawString(verStr, 160, 226, 2);                                        // put version info on the screen
 
    tft.setTextColor(warningColor);
@@ -6208,18 +6196,23 @@ void showWind(void)
       wind = "NNW";
    }
 
-   wind += " " + String(weatherWind);
-
-   if (weatherGust > weatherWind)
+   if ((weatherWind > 0) || (weatherGust > 0))
    {
-      wind += "-" + String(weatherGust);
-   }
+      wind += " " + String(weatherWind);
 
-   if (useMetric)
-   {
-      wind += "kph";
+      if (weatherGust > weatherWind)
+      {
+         wind += "-" + String(weatherGust);
+      }
+
+      if (useMetric)
+      {
+         wind += "kph";
+      } else {
+         wind += "mph";
+      }
    } else {
-      wind += "mph";
+      wind = "(no wind)";
    }
 
    tft.setTextColor (labelFGColor, labelBGColor);
@@ -6238,7 +6231,7 @@ void startButtonLoopTask(void)
 
    // Start a permanent thread to manage the button timing & detection
 
-#if defined(ESP32S3_SUPERMINI) || defined(ESP32S3_MINI) || defined(ESP32S3_MJC_TESTBED) || defined(CARC_V4)
+#if defined(MWRS_ESP32S3_MINI) || defined(CARC_V4_ESP32S3_MINI)
 
    xTaskCreatePinnedToCore(buttonLoopTask, "ButtonLoopTask", 4096, NULL, TASK_PRIORITY, NULL, CPU_CORE);
 
@@ -6447,7 +6440,7 @@ void startGPS(boolean tryBothPinConfigs)
       gpsSatelliteCount = 0;
    }
 
-#ifdef CARC_V4
+#ifdef CARC_V4_ESP32S3_MINI
    prefs.begin("config", false);
    prefs.putInt("gpsActiveMode", gpsActiveMode);                           // GPS auto/manual
    prefs.end();
@@ -6970,7 +6963,7 @@ const String webConfigPage()
              "<TD>" + webCheckbox(dateAboveMonth, "dtovermo", "Date Above Month") + "</TD>"
              "</TR>"
 
-#ifdef CARC_V4
+#ifdef CARC_V4_ESP32S3_MINI
 
              "<TR><TH COLSPAN=2 CLASS='HEADING'>Battery Voltage Display</TH></TR>"
              "<TR>"
@@ -7878,7 +7871,7 @@ void webSetConfig(AsyncWebServerRequest * request)
       String gpsmode = request->getParam("gpsmode", true)->value();
       gpsActiveMode = gpsmode.toInt();
 
-#ifdef CARC_V4
+#ifdef CARC_V4_ESP32S3_MINI
       prefs.putInt("gpsActiveMode", gpsActiveMode);                           // GPS auto/manual
 #endif
    }
@@ -8429,7 +8422,12 @@ const String webStatusPage()
              "<TABLE COLUMNS=2>"
              "<TR>"
              "<TD><CLASS='LABEL'>Version:</TD>"
-             "<TD>" + (String)VERSION_TIMESTAMP + "</TD>"
+#if defined(ARDUINO_LOLIN_S3_MINI)
+             "<TD>" + (String)VERSION_TIMESTAMP + String(" [ESP32-S3-mini]") + "</TD>"
+#endif
+#if defined(ARDUINO_LOLIN_S2_MINI)
+             "<TD>" + (String)VERSION_TIMESTAMP + String(" [ESP32-S2-mini]") + "</TD>"
+#endif
              "</TR>"
              "<TR>"
              "<TD><CLASS='LABEL'>AP:</TD>"

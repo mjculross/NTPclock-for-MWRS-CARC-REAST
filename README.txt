@@ -170,3 +170,10 @@ Rev History:   11/27/20   Initial GitHub commit
                           enabled/active when the clock was last powered off, &
                           automatically reenable the GPS at the next power-on, if it
                           was previously enabled/active.
+               10/11/26   Added #pragma message lines to confirm at build time on
+                          processor selection in the Arduino IDE & target selection
+                          in tft_setup.h.  Also added indication of which processor
+                          is running in all places where the version string is
+                          displayed. Changed the wind report to indicate "(no wind)"
+                          (instead of "N 0mph" or "N kph") when wind speed & wind
+                          gusts are both reported as zero (or not reported).
