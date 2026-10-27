@@ -1,27 +1,34 @@
-/*
-   Title:            NTP Dual Clock (v4.x)
-   Author:           (original) Bruce E. Hall, w8bh.net (Original Version)
-                     (current) RAHinsley (VK2ARH), MJCulross (KD5RXT)
-   Date:             (original) 13 Feb 2021
-   Hardware:         ESP32-S2-mini or ESP32-S3-mini, with ILI9341 TFT display
-   Software:         (see the README.TXT file for information on setup & required library versions)
-   Legal:            Copyright (c) 2021 Bruce E. Hall.
-                     Open Source under the terms of the MIT License.
+//
+// Title:            NTP Dual Clock (v4.x)
+// Author:           (original) Bruce E. Hall, w8bh.net (Original Version)
+//                   (current) RAHinsley (VK2ARH), MJCulross (KD5RXT)
+// Date:             (original) 13 Feb 2021
+// Hardware:         ESP32-S2-mini or ESP32-S3-mini, with ILI9341 TFT display
+// Software:         (current) NTPclock for MWRS / CARC / REAST
+// Legal:            Copyright (c) 2021 Bruce E. Hall.
+//                   Open Source under the terms of the MIT License.
+//
+// Description:      Dual UTC/Local NTP Clock with TFT display. Time is refreshed via
+//                   NTP. Status indicator for time freshness & WiFi strength.
+//                   Also, the 'TITLE' can be set to your callsign or any other
+//                   8 character (max) string if you wish to have it shown in the
+//                   banner at the top of the clock display.
+//
+//                   A list of timezones can be defined in the UserSettings.h file
+//                   to be selectively displayed in sequence in the local timezone area.
+//
+// Revision History: (see the README.txt file for detailed revision history)
 
-   Description:      Dual UTC/Local NTP Clock with TFT display. Time is refreshed via
-                     NTP. Status indicator for time freshness & WiFi strength.
+#define VERSION_TIMESTAMP "20261026-2230"
 
-                     Also, you can set the 'TITLE' symbol to your callsign or any
-                     other 8 character (max) string if you wish to have it display
-                     in the Clock Banner.
-
-                     You can also define a list of timezones in the UserSettings.h
-                     header file to be displayed in sequence in the local timezone area.
-
-   Revision History: (see the README.txt file for detailed revision history)
-*/
-
-#define VERSION_TIMESTAMP "20261011-1000"
+// NOTE: In order to successfully build this software for your NTPclock hardware, appropriate selections
+//       for the actual processor in use must be made in the Arduino IDE.  Likewise, appropriate
+//       selections for the build target must be made in the tft_setup.h file. Software built for an
+//       incorrect processor will refuse to upload.  Software built for an incorrect build target will
+//       upload, but will not function correctly (most likely, the display will fail to show the
+//       expected output).  See the NTPclock Software Documentation at the following link for full details:
+//
+//          https://github.com/mjculross/NTPclock-for-MWRS-CARC-REAST/
 
 //#define GPS_TRY_REVERSED_RXTX_FIRST                                            // uncomment/activate this to try the reversed GPS RX/TX pin definition first
 //#define DISABLE_BUTTON_DEF_TIMEOUT                                             // uncomment to disable the automatic timeout on the initial button definition screen
@@ -354,31 +361,17 @@ boolean showGPSSelection = false;
 int8_t showModeDelayCount = 0;
 boolean showModeFlag = true;                                                   // when this flag gets set, the name of the currently selected mode will be temporarily displayed
 
-typedef enum
+uint8_t tzIndex = 0;
+const uint8_t tzCount = sizeof(timeZones) / sizeof(timeZones[0]);
+
+typedef struct
 {
-   SHOW_TZ_EST_EDT = 0,
-   SHOW_TZ_CST_CDT,
-   SHOW_TZ_MST_MDT,
-   SHOW_TZ_MST_NO_MDT,
-   SHOW_TZ_PST_PDT,
-   SHOW_TZ_AWST,
-   SHOW_TZ_ACST_ACDT,
-   SHOW_TZ_AEST_AEDT,
-   SHOW_TZ_GMT_BST,
-   SHOW_TZ_END_MARKER,
-} SHOW_TZ_TYPE;
+   String tzPrefsID;
+   boolean tzShowID;
+   String tzWebID;
+} tzParamsType;
 
-SHOW_TZ_TYPE tzIndex = SHOW_TZ_AEST_AEDT;                                      // Index to which local timezone to display
-
-boolean showESTEDT   = DEFAULT_SHOW_EST_EDT_TZ;
-boolean showCSTCDT   = DEFAULT_SHOW_CST_CDT_TZ;
-boolean showMSTMDT   = DEFAULT_SHOW_MST_MDT_TZ;
-boolean showMSTNOMDT = DEFAULT_SHOW_MST_NO_MDT_TZ;
-boolean showPSTPDT   = DEFAULT_SHOW_PST_PDT_TZ;
-boolean showAWST     = DEFAULT_SHOW_AWST_TZ;
-boolean showACSTACDT = DEFAULT_SHOW_ACST_ACDT_TZ;
-boolean showAESTAEDT = DEFAULT_SHOW_AEST_AEDT_TZ;
-boolean showGMTBST   = DEFAULT_SHOW_GMT_BST_TZ;
+tzParamsType tzArray[32];
 
 boolean hidePasswords = true;
 boolean colorDefaults = false;
@@ -549,6 +542,7 @@ void loop(void);
 void netTickTime(void);
 void netInit(void);
 void newDualScreen(void);
+void parseTimezones(void);
 void printTime(void);
 void printValues(void);
 void readSettings(void);
@@ -831,32 +825,16 @@ void forceDefaults(boolean requireConfirm)
       tzCountdownInterval = 1;                                                 // force a change in the tz interval in the next second & apply the new interval
       prefs.putInt("tzInterval", tzCountdownIntervalSetting);
 
-      showESTEDT = DEFAULT_SHOW_EST_EDT_TZ;
-      prefs.putBool("showest", showESTEDT);
+      // go get default timezone settings
+      parseTimezones();
 
-      showCSTCDT = DEFAULT_SHOW_CST_CDT_TZ;
-      prefs.putBool("showcst", showCSTCDT);
+      for (int i = 0; i < tzCount; i++)
+      {
+         char str[16];
 
-      showMSTMDT = DEFAULT_SHOW_MST_MDT_TZ;
-      prefs.putBool("showmst", showMSTMDT);
-
-      showMSTNOMDT = DEFAULT_SHOW_MST_NO_MDT_TZ;
-      prefs.putBool("showmst", showMSTNOMDT);
-
-      showPSTPDT = DEFAULT_SHOW_PST_PDT_TZ;
-      prefs.putBool("showpst", showPSTPDT);
-
-      showAWST = DEFAULT_SHOW_AWST_TZ;
-      prefs.putBool("showawst", showAWST);
-
-      showACSTACDT = DEFAULT_SHOW_ACST_ACDT_TZ;
-      prefs.putBool("showacst", showACSTACDT);
-
-      showAESTAEDT = DEFAULT_SHOW_AEST_AEDT_TZ;
-      prefs.putBool("showaest", showAESTAEDT);
-
-      showGMTBST = DEFAULT_SHOW_GMT_BST_TZ;
-      prefs.putBool("showgmt", showGMTBST);
+         sprintf(str, "%s", tzArray[i].tzPrefsID);
+         prefs.putBool(str, tzArray[i].tzShowID);
+      }
 
       showAMPMMode = DEFAULT_SHOW_AMPM_MODE;
       prefs.putInt("showAMPM", (int)showAMPMMode);
@@ -1916,111 +1894,27 @@ void loop(void)
       {
          tzCountdownInterval = tzCountdownIntervalSetting;
 
-         tzIndex = SHOW_TZ_TYPE(tzIndex + 1);
-         if (tzIndex >= SHOW_TZ_END_MARKER)
+         if (++tzIndex >= tzCount)
          {
-            tzIndex = SHOW_TZ_EST_EDT;
+            tzIndex = 0;
          }
 
-         boolean foundNext = false;
+         boolean nextFound = false;
 
-         while (foundNext == false)
+         while (!nextFound)
          {
-            switch (tzIndex)
+            if (tzArray[tzIndex].tzShowID)
             {
-               case SHOW_TZ_EST_EDT:
-                  {
-                     if (showESTEDT)
-                     {
-                        foundNext = true;
-                     }
-                  }
-                  break;
+               local.setPosix(timeZones[tzIndex].tzDef);                       // Set new local time zone by rule
 
-               case SHOW_TZ_CST_CDT:
-                  {
-                     if (showCSTCDT)
-                     {
-                        foundNext = true;
-                     }
-                  }
-                  break;
-
-               case SHOW_TZ_MST_MDT:
-                  {
-                     if (showMSTMDT)
-                     {
-                        foundNext = true;
-                     }
-                  }
-                  break;
-
-               case SHOW_TZ_MST_NO_MDT:
-                  {
-                     if (showMSTNOMDT)
-                     {
-                        foundNext = true;
-                     }
-                  }
-                  break;
-
-               case SHOW_TZ_PST_PDT:
-                  {
-                     if (showPSTPDT)
-                     {
-                        foundNext = true;
-                     }
-                  }
-                  break;
-
-               case SHOW_TZ_AWST:
-                  {
-                     if (showAWST)
-                     {
-                        foundNext = true;
-                     }
-                  }
-                  break;
-
-               case SHOW_TZ_ACST_ACDT:
-                  {
-                     if (showACSTACDT)
-                     {
-                        foundNext = true;
-                     }
-                  }
-                  break;
-
-               case SHOW_TZ_AEST_AEDT:
-                  {
-                     if (showAESTAEDT)
-                     {
-                        foundNext = true;
-                     }
-                  }
-                  break;
-
-               case SHOW_TZ_GMT_BST:
-                  {
-                     if (showGMTBST)
-                     {
-                        foundNext = true;
-                     }
-                  }
-                  break;
-            }
-
-            if (!foundNext)
-            {
-               tzIndex = SHOW_TZ_TYPE(tzIndex + 1);
-               if (tzIndex >= SHOW_TZ_END_MARKER)
+               nextFound = true;
+            } else {
+               if (++tzIndex >= tzCount)
                {
-                  tzIndex = SHOW_TZ_EST_EDT;
+                  tzIndex = 0;
                }
             }
          }
-
-         local.setPosix(timeZones[int(tzIndex)]);                              // Set new local time zone by rule
       }
 
       show5VDC(225, 16);
@@ -2758,6 +2652,99 @@ void newDualScreen(void)                                                       /
 }  // newDualScreen()
 
 
+void parseTimezones(void)
+{
+   int charIndex;
+
+   tzIndex = 0;
+
+   while (tzIndex < tzCount)
+   {
+      tzArray[tzIndex].tzPrefsID = "show";
+      tzArray[tzIndex].tzWebID = String();
+
+      tzIndex++;
+   }
+
+   tzIndex = 0;
+
+   while (tzIndex < tzCount)
+   {
+      charIndex = 0;
+
+      boolean foundFirstSlash = false;
+
+      // parse every character of the first field in the timezone entry (up to either a comma, or the end of the entry)
+      while ((timeZones[tzIndex].tzDef[charIndex] != ',') && (timeZones[tzIndex].tzDef[charIndex] != 0x00))
+      {
+         if ((timeZones[tzIndex].tzDef[charIndex] >= 'A') && (timeZones[tzIndex].tzDef[charIndex] <= 'Z'))
+         {
+            tzArray[tzIndex].tzWebID += timeZones[tzIndex].tzDef[charIndex];
+         } else {
+            if (!foundFirstSlash)
+            {
+               tzArray[tzIndex].tzWebID += "/";
+               foundFirstSlash = true;
+            }
+         }
+
+         charIndex++;
+      }
+
+      // now, strip off final char if it is a '/'
+      while (tzArray[tzIndex].tzWebID.charAt(tzArray[tzIndex].tzWebID.length() - 1) == '/')
+      {
+         tzArray[tzIndex].tzWebID = tzArray[tzIndex].tzWebID.substring(0, tzArray[tzIndex].tzWebID.length() - 1);
+      }
+
+      charIndex = 0;
+
+      boolean slashFound = false;
+
+      // now, create prefs ID
+      while (charIndex < tzArray[tzIndex].tzWebID.length())
+      {
+         if (tzArray[tzIndex].tzWebID.charAt(charIndex) == '/')
+         {
+            slashFound = true;
+         }
+
+         if (!slashFound)
+         {
+            // save the equivalent letter in lowercase
+            tzArray[tzIndex].tzPrefsID += char(tzArray[tzIndex].tzWebID.charAt(charIndex) + 0x20);
+         }
+
+         charIndex++;
+      }
+
+      // special case for MST only (no MDT)
+      if (tzArray[tzIndex].tzWebID.length() == 3)
+      {
+         tzArray[tzIndex].tzPrefsID += "only";
+      }
+
+      tzArray[tzIndex].tzShowID = timeZones[tzIndex].tzDisplay;
+
+//      Serial.print("TZ index     = ");
+//      Serial.println(tzIndex);
+//      Serial.print("   webID     = ");
+//      Serial.println(tzArray[tzIndex].tzWebID);
+//      Serial.print("   prefsID   = ");
+//      Serial.println(tzArray[tzIndex].tzPrefsID);
+//      if (tzArray[tzIndex].tzShowID)
+//      {
+//         Serial.println("   display   = true");
+//      } else {
+//         Serial.println("   display   = false");
+//      }
+//      Serial.println("");
+
+      tzIndex++;
+   }
+}  // parseTimezones()
+
+
 void printTime(void)                                                           // Print time to serial port
 {
    switch (printedTime)
@@ -3176,83 +3163,33 @@ void readSettings(void)
 
    }
 
-   if (prefs.isKey("showest"))
+   boolean tzActive = false;
+
+   for (int i = 0; i < tzCount; i++)
    {
-      showESTEDT = prefs.getBool("showest", DEFAULT_SHOW_EST_EDT_TZ);
-   } else {
-      showESTEDT = DEFAULT_SHOW_EST_EDT_TZ;
-      prefs.putBool("showest", showESTEDT);
+      char str[16];
+
+      sprintf(str, "%s", tzArray[i].tzPrefsID);
+
+      if (prefs.isKey(str))
+      {
+         tzArray[i].tzShowID = prefs.getBool(str, tzArray[i].tzShowID);
+      } else {
+         prefs.putBool(str, tzArray[i].tzShowID);
+      }
+
+      if (tzArray[i].tzShowID)
+      {
+         tzActive = true;
+      }
    }
 
-   if (prefs.isKey("showcst"))
+   // make sure that at least one timezone is selected (you choose which it is by defining DEFAULT_SHOW_TZ_INDEX in UserSettings.h)
+   if (!tzActive)
    {
-      showCSTCDT = prefs.getBool("showcst", DEFAULT_SHOW_CST_CDT_TZ);
-   } else {
-      showCSTCDT = DEFAULT_SHOW_CST_CDT_TZ;
-      prefs.putBool("showcst", showCSTCDT);
-   }
-
-   if (prefs.isKey("showmst"))
-   {
-      showMSTMDT = prefs.getBool("showmst", DEFAULT_SHOW_MST_MDT_TZ);
-   } else {
-      showMSTMDT = DEFAULT_SHOW_MST_MDT_TZ;
-      prefs.putBool("showmst", showMSTMDT);
-   }
-
-   if (prefs.isKey("showestonly"))
-   {
-      showMSTNOMDT = prefs.getBool("showmstonly", DEFAULT_SHOW_MST_NO_MDT_TZ);
-   } else {
-      showMSTNOMDT = DEFAULT_SHOW_MST_NO_MDT_TZ;
-      prefs.putBool("showmstonly", showMSTNOMDT);
-   }
-
-   if (prefs.isKey("showpst"))
-   {
-      showPSTPDT = prefs.getBool("showpst", DEFAULT_SHOW_PST_PDT_TZ);
-   } else {
-      showPSTPDT = DEFAULT_SHOW_PST_PDT_TZ;
-      prefs.putBool("showpst", showPSTPDT);
-   }
-
-   if (prefs.isKey("showawst"))
-   {
-      showAWST = prefs.getBool("showawst", DEFAULT_SHOW_AWST_TZ);
-   } else {
-      showAWST = DEFAULT_SHOW_AWST_TZ;
-      prefs.putBool("showawst", showAWST);
-   }
-
-   if (prefs.isKey("showacst"))
-   {
-      showACSTACDT = prefs.getBool("showacst", DEFAULT_SHOW_ACST_ACDT_TZ);
-   } else {
-      showACSTACDT = DEFAULT_SHOW_ACST_ACDT_TZ;
-      prefs.putBool("showacst", showACSTACDT);
-   }
-
-   if (prefs.isKey("showaest"))
-   {
-      showAESTAEDT = prefs.getBool("showaest", DEFAULT_SHOW_AEST_AEDT_TZ);
-   } else {
-      showAESTAEDT = DEFAULT_SHOW_AEST_AEDT_TZ;
-      prefs.putBool("showaest", showAESTAEDT);
-   }
-
-   if (prefs.isKey("showgmt"))
-   {
-      showGMTBST = prefs.getBool("showgmt", DEFAULT_SHOW_GMT_BST_TZ);
-   } else {
-      showGMTBST = DEFAULT_SHOW_GMT_BST_TZ;
-      prefs.putBool("showgmt", showESTEDT);
-   }
-
-   // make sure that at least one timezone is selected (you choose which it is)
-   if (!showESTEDT && !showCSTCDT && !showMSTMDT && !showMSTNOMDT && !showPSTPDT && !showAWST && !showACSTACDT && !showAESTAEDT && !showGMTBST)
-   {
-      showCSTCDT = true;
-      prefs.putBool("showcst", showCSTCDT);
+      tzArray[DEFAULT_SHOW_TZ_INDEX].tzShowID = true;
+      tzIndex = DEFAULT_SHOW_TZ_INDEX;
+      local.setPosix(timeZones[tzIndex].tzDef);                                // Set new local time zone by rule
    }
 
    if (prefs.isKey("showAMPM"))
@@ -3864,6 +3801,8 @@ void setup(void)
 
    strcpy(apSSID, DEFAULT_AP_NAME);
 
+   parseTimezones();                                                           // this must be called before readSettings(), as readSettings() may then override what was read from the default array in UserSettings.h
+
    // uncomment this line to reset all settings to defaults (e.g. WiFi definitions, etc.)
    //   forceDefaults(false);
 
@@ -3972,52 +3911,26 @@ void setup(void)
    configTime(3 * 3600, 0, "pool.ntp.org", "time.nist.gov");                   // Set time via NTP, as required for x.509 validation
 
    // determine which TZ to display first
-   if (showESTEDT)
+   boolean nextFound = false;
+
+   tzIndex = 0;
+
+   while (!nextFound)
    {
-      tzIndex = SHOW_TZ_EST_EDT;
-   } else {
-      if (showCSTCDT)
+      if (tzArray[tzIndex].tzShowID)
       {
-         tzIndex = SHOW_TZ_CST_CDT;
+         local.setPosix(timeZones[tzIndex].tzDef);                             // Set new local time zone by rule
+
+         nextFound = true;
       } else {
-         if (showMSTMDT)
+         if (++tzIndex >= tzCount)
          {
-            tzIndex = SHOW_TZ_MST_MDT;
-         } else {
-            if (showMSTNOMDT)
-            {
-               tzIndex = SHOW_TZ_MST_NO_MDT;
-            } else {
-               if (showPSTPDT)
-               {
-                  tzIndex = SHOW_TZ_PST_PDT;
-               } else {
-                  if (showAWST)
-                  {
-                     tzIndex = SHOW_TZ_AWST;
-                  } else {
-                     if (showACSTACDT)
-                     {
-                        tzIndex = SHOW_TZ_ACST_ACDT;
-                     } else {
-                        if (showAESTAEDT)
-                        {
-                           tzIndex = SHOW_TZ_AEST_AEDT;
-                        } else {
-                           if (showGMTBST)
-                           {
-                              tzIndex = SHOW_TZ_GMT_BST;
-                           }
-                        }
-                     }
-                  }
-               }
-            }
+            tzIndex = DEFAULT_SHOW_TZ_INDEX;
+
+            nextFound = true;
          }
       }
    }
-
-   local.setPosix(timeZones[int(tzIndex)]);                                    // Set local time zone
 
    Serial.println("");
    Serial.println("BME280 test");
@@ -6806,6 +6719,8 @@ const String webConfigPage()
    char ptStr[8];
    char humStr[8];
 
+   String timezonelist = String();
+
    sprintf(tzcStr, "%d", tzCountdownIntervalSetting);
 
    sprintf(gpsStr, "%d", useGPSToSetInternalClockIntervalInSeconds);
@@ -6814,6 +6729,12 @@ const String webConfigPage()
 
    sprintf(ptStr, "%d", printedTime);
    sprintf(humStr, "%d", humidityOffset);
+
+   for (int i = 0; i < tzCount; i++)
+   {
+      timezonelist += String("<TR>") + String("<TD><CLASS='LABEL'>Display the ") + tzArray[i].tzWebID + String("<BR>Timezone</TD>") + String("<TD>") +
+                      webCheckbox(tzArray[i].tzShowID, tzArray[i].tzPrefsID, String("Show ") + tzArray[i].tzWebID + String("</TD>") + String("</TR>"));
+   }
 
    return webPage(
              "<H1>NTPclock [CONFIG]</H1>"
@@ -6899,42 +6820,7 @@ const String webConfigPage()
              "<TD>" + webInputField("tzcountdown", tzcStr) + "</TD>"
              "</TR>"
              "<TR><TH COLSPAN=2 CLASS='HEADING'>Timezones to Display</TH></TR>"
-             "<TR>"
-             "<TD><CLASS='LABEL'>Display the EST/EDT<BR>Timezone</TD>"
-             "<TD>" + webCheckbox(showESTEDT, "showest", "Show EST/EDT") + "</TD>"
-             "</TR>"
-             "<TR>"
-             "<TD><CLASS='LABEL'>Display the CST/CDT<BR>Timezone</TD>"
-             "<TD>" + webCheckbox(showCSTCDT, "showcst", "Show CST/CDT") + "</TD>"
-             "</TR>"
-             "<TR>"
-             "<TD><CLASS='LABEL'>Display the MST/MDT<BR>Timezone</TD>"
-             "<TD>" + webCheckbox(showMSTMDT, "showmst", "Show MST/MDT") + "</TD>"
-             "</TR>"
-             "<TR>"
-             "<TD><CLASS='LABEL'>Display the EST/EDT<BR>Timezone</TD>"
-             "<TD>" + webCheckbox(showMSTNOMDT, "showmstonly", "Show MST (only)") + "</TD>"
-             "</TR>"
-             "<TR>"
-             "<TD><CLASS='LABEL'>Display the PST/PDT<BR>Timezone</TD>"
-             "<TD>" + webCheckbox(showPSTPDT, "showpst", "Show PST/PDT") + "</TD>"
-             "</TR>"
-             "<TR>"
-             "<TD><CLASS='LABEL'>Display the AWST<BR>Timezone</TD>"
-             "<TD>" + webCheckbox(showAWST, "showawst", "Show AWST") + "</TD>"
-             "</TR>"
-             "<TR>"
-             "<TD><CLASS='LABEL'>Display the ACST/ACDT<BR>Timezone</TD>"
-             "<TD>" + webCheckbox(showACSTACDT, "showacst", "Show ACST/ACDT") + "</TD>"
-             "</TR>"
-             "<TR>"
-             "<TD><CLASS='LABEL'>Display the AEST/AEDT<BR>Timezone</TD>"
-             "<TD>" + webCheckbox(showAESTAEDT, "showaest", "Show AEST/AEDT") + "</TD>"
-             "</TR>"
-             "<TR>"
-             "<TD><CLASS='LABEL'>Display the GMT/BST<BR>Timezone</TD>"
-             "<TD>" + webCheckbox(showGMTBST, "showgmt", "Show GMT/BST") + "</TD>"
-             "</TR>"
+             + timezonelist +
              "<TR><TH COLSPAN=2 CLASS='HEADING'>Time & Date Display Format</TH></TR>"
              "<TR>"
              "<TD><CLASS='LABEL'>Show AM/PM Mode</TD>"
@@ -7946,46 +7832,32 @@ void webSetConfig(AsyncWebServerRequest * request)
       prefs.putInt("tzInterval", tzCountdownIntervalSetting);
    }
 
-   // save the show EST/EDT timezone selection
-   showESTEDT = (boolean)(request->hasParam("showest", true));
-   prefs.putBool("showest", showESTEDT);
+   boolean tzActive = false;
 
-   // save the show CST/CDT timezone selection
-   showCSTCDT = (boolean)(request->hasParam("showcst", true));
-   prefs.putBool("showcst", showCSTCDT);
-
-   // save the show MST/MDT timezone selection
-   showMSTMDT = (boolean)(request->hasParam("showmst", true));
-   prefs.putBool("showmst", showMSTMDT);
-
-   showMSTNOMDT = (boolean)(request->hasParam("showmstonly", true));
-   prefs.putBool("showmstonly", showMSTNOMDT);
-
-   // save the show PST/PDT timezone selection
-   showPSTPDT = (boolean)(request->hasParam("showpst", true));
-   prefs.putBool("showpst", showPSTPDT);
-
-   // save the show AWST timezone selection
-   showAWST = (boolean)(request->hasParam("showawst", true));
-   prefs.putBool("showawst", showAWST);
-
-   // save the show ACST/ACDT timezone selection
-   showACSTACDT = (boolean)(request->hasParam("showacst", true));
-   prefs.putBool("showacst", showACSTACDT);
-
-   // save the show AEST/AEDT timezone selection
-   showAESTAEDT = (boolean)(request->hasParam("showaest", true));
-   prefs.putBool("showaest", showAESTAEDT);
-
-   // save the show GMT/BST timezone selection
-   showGMTBST = (boolean)(request->hasParam("showgmt", true));
-   prefs.putBool("showgmt", showGMTBST);
-
-   // make sure that at least one timezone is selected (you choose which it is)
-   if (!showESTEDT && !showCSTCDT && !showMSTMDT && !showMSTNOMDT && !showPSTPDT && !showAWST && !showACSTACDT && !showAESTAEDT && !showGMTBST)
+   // save the show timezone selections
+   for (int i = 0; i < tzCount; i++)
    {
-      showCSTCDT = true;
-      prefs.putBool("showcst", showCSTCDT);
+      char str[16];
+
+      sprintf(str, "%s", tzArray[i].tzPrefsID);
+      tzArray[i].tzShowID = (boolean)(request->hasParam(tzArray[i].tzPrefsID, true));
+      prefs.putBool(str, tzArray[i].tzShowID);
+
+      if (tzArray[i].tzShowID)
+      {
+         tzActive = true;
+      }
+   }
+
+   //   showESTEDT = (boolean)(request->hasParam("showest", true));
+   //   prefs.putBool("showest", showESTEDT);
+
+   // make sure that at least one timezone is selected (you choose which it is by defining DEFAULT_SHOW_TZ_INDEX in UserSettings.h)
+   if (!tzActive)
+   {
+      tzArray[DEFAULT_SHOW_TZ_INDEX].tzShowID = true;
+      tzIndex = DEFAULT_SHOW_TZ_INDEX;
+      local.setPosix(timeZones[tzIndex].tzDef);                                // Set new local time zone by rule
    }
 
    // Save AM/PM mode

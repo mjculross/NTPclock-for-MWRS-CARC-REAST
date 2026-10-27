@@ -1,11 +1,8 @@
-/*
-   This is the root SSL certificate for 'hamqsl.com' which is used to
-   establish a secure connection with the server.
-
- 	It's here in a header file as it might have to be changed periodically
- 	when the certicifate is renewed.
-*/
-
+// This is the root SSL certificate for 'hamqsl.com' which is used to
+// establish a secure connection with the server.
+//
+// It's here in a header file as it might have to be changed periodically
+// when the certicifate is renewed.
 
 const char HQSL_Root_Cert[] PROGMEM = R"CERT(
 -----BEGIN CERTIFICATE-----

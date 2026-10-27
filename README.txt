@@ -177,3 +177,8 @@ Rev History:   11/27/20   Initial GitHub commit
                           displayed. Changed the wind report to indicate "(no wind)"
                           (instead of "N 0mph" or "N kph") when wind speed & wind
                           gusts are both reported as zero (or not reported).
+               10/26/26   Reworked the timezone processing, which now automatically
+                          parses the timezone list & dynamically creates the CONFIG
+                          webpage with the list of timezones found in the
+                          UserSettings.h file.  Timezones can be added/removed and
+                          the list automatically updates at startup.

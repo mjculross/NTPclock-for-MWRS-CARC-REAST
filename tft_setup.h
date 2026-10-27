@@ -1,11 +1,9 @@
-
 #define ILI9341_DRIVER
-
 #define USE_HSPI_PORT
 
 // activate/uncomment one of these build flags to build for a target different from the ESP32-S2-mini (default)
 //    NOTE: don't forget to also select the correct/corresponding processor type in the Arduino IDE
-//#define CARC_V4_ESP32S3_MINI
+#define CARC_V4_ESP32S3_MINI
 //#define MWRS_ESP32S3_MINI
 
 #define TFT_MOSI  11   // pin  6
@@ -16,7 +14,6 @@
 #define TFT_DC    18   // pin 12
 
 #define SCREEN_ORIENTATION           1                // Screen portrait mode:  use 1 or 3
-
 
 #if defined CARC_V4_ESP32S3_MINI
 
