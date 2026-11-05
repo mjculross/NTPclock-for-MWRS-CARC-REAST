@@ -19,7 +19,7 @@
 //
 // Revision History: (see the README.txt file for detailed revision history)
 
-#define VERSION_TIMESTAMP "20261104-1130"
+#define VERSION_TIMESTAMP "20261104-2100"
 
 // NOTE: In order to successfully build this software for your NTPclock hardware, appropriate selections
 //       for the actual processor in use must be made in the Arduino IDE.  Likewise, appropriate
@@ -2454,7 +2454,7 @@ void loop(void)
                                  prefs.begin("config", false);
 
                                  prefs.putInt("showMode", int(showMode));
-                                 
+
                                  prefs.end();
 #endif
 
@@ -4077,8 +4077,11 @@ void show5VDC(uint16_t x, uint16_t y)
             tft.setTextColor(labelFGColor, labelBGColor);
             tft.drawString(ps_five_dc, x, y, 2);
          } else {
-            tft.setTextColor(lostColor, labelBGColor);
-            tft.drawString("LOW", x, y, 2);
+            if (fiveVoltAverage > 1.00)
+            {
+               tft.setTextColor(lostColor, labelBGColor);
+               tft.drawString("LOW", x, y, 2);
+            }
          }
 
          if (debugSupplyVoltage)
@@ -4093,11 +4096,16 @@ void show5VDC(uint16_t x, uint16_t y)
             Serial.print("Battery voltage displayed:  ");
             Serial.println(ps_five_dc);
 
-            if (digitalRead(INPUT_LBO_PIN) == HIGH)
+            if (fiveVoltAverage > 1.00)
             {
-               Serial.println("LBO signal is HIGH (battery OK)");
+               if (digitalRead(INPUT_LBO_PIN) == HIGH)
+               {
+                  Serial.println("LBO signal is HIGH (battery OK)");
+               } else {
+                  Serial.println("LBO signal is LOW (battery needs to be charged)");
+               }
             } else {
-               Serial.println("LBO signal is LOW (battery needs to be charged)");
+               Serial.println("It does not appear that a battery is in use and/or connected");
             }
          }
 
