@@ -3,7 +3,7 @@
 
 // activate/uncomment one of these build flags to build for a target different from the ESP32-S2-mini (default)
 //    NOTE: don't forget to also select the correct/corresponding processor type in the Arduino IDE
-#define CARC_V4_ESP32S3_MINI
+//#define CARC_V4_ESP32S3_MINI
 //#define MWRS_ESP32S3_MINI
 
 #define TFT_MOSI  11   // pin  6

@@ -182,3 +182,13 @@ Rev History:   11/27/20   Initial GitHub commit
                           webpage with the list of timezones found in the
                           UserSettings.h file.  Timezones can be added/removed and
                           the list automatically updates at startup.
+               11/04/26   Corrected the processing of weather for the ESP32-S2 mini
+                          processor.  IN additon, now only turn off SOLAR after
+                          starting GPS (as solar fetch will likely fail otherwise).
+                          Blank battery voltage display for CARC if battery voltage
+                          is below 1.0VDC (most likely due to not using battery
+                          and/or Adafruit PowerBoost 1000C battery management
+                          module). Added #pragma message line to indicate default
+                          target for ESP32 S2 mini when not otherwise selected in
+                          tft_setup.h
+

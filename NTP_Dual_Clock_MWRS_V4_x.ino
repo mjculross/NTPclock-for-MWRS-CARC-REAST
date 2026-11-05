@@ -19,7 +19,7 @@
 //
 // Revision History: (see the README.txt file for detailed revision history)
 
-#define VERSION_TIMESTAMP "20261026-2230"
+#define VERSION_TIMESTAMP "20261104-1130"
 
 // NOTE: In order to successfully build this software for your NTPclock hardware, appropriate selections
 //       for the actual processor in use must be made in the Arduino IDE.  Likewise, appropriate
@@ -118,6 +118,9 @@
 #pragma message "Target: MWRS_ESP32S3_MINI (selected in tft_setup.h)"
 #endif
 
+#if !defined(CARC_V4_ESP32S3_MINI) && !defined(MWRS_ESP32S3_MINI)
+#pragma message "Target: (default ESP32 S2 mini, unless otherwise selected in tft_setup.h)"
+#endif
 
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 
@@ -1533,7 +1536,7 @@ void getWeatherData(void)
    {
       if (--weatherDelayCount <= 0)
       {
-         const String baseURL        = "https://api.openweathermap.org/data/2.5/weather";
+         const String baseURL        = "http://api.openweathermap.org/data/2.5/weather";
          const String latTag         = "?lat=";
          const String lonTag         = "&lon=";
          const String unitsImperial  = "&units=imperial";
@@ -1561,21 +1564,16 @@ void getWeatherData(void)
             Serial.println(WEATHER_URL);
          }
 
-         HTTPClient clientHttps;
-         WiFiClientSecure sClient;
-
-         sClient.setInsecure();
-         sClient.setHandshakeTimeout(5);
-
-         if (clientHttps.begin(sClient, WEATHER_URL))                          // Open the URL connection
+         HTTPClient clientHttp;
+         if (clientHttp.begin(WEATHER_URL))                                   // Open the URL connection
          {
-            int httpResponseCode = clientHttps.GET();                          // Get the response code
+            int httpResponseCode = clientHttp.GET();                          // Get the response code
 
             if (httpResponseCode > 0)
             {
                if (httpResponseCode == HTTP_CODE_OK)
                {
-                  String payloadStr = clientHttps.getString();
+                  String payloadStr = clientHttp.getString();
 
                   if (payloadStr.length() > 0)
                   {
@@ -1721,7 +1719,7 @@ void getWeatherData(void)
                         Serial.println("");
                      }
                   } else {
-                     Serial.println("clientHttps.getString() return payload was empty");
+                     Serial.println("clientHttp.getString() return payload was empty");
                   }
                } else {
                   if (httpResponseCode == 401)
@@ -1764,7 +1762,7 @@ void getWeatherData(void)
             weatherDelayCount = WEATHER_FAIL_RETRY_INTERVAL_IN_SECONDS;
          }
 
-         clientHttps.end();
+         clientHttp.end();
 
          updateDisplayFlag = false;
       }
@@ -2449,10 +2447,15 @@ void loop(void)
 
 #if !defined(MWRS_ESP32S3_MINI) && !defined(CARC_V4_ESP32S3_MINI)
                               } else {
-                                 // if GPS was just enabled, then disable Weather & Solar fetching (since they are very likely to start failing)
+                                 // if GPS was just enabled on the ESP32-S2-mini (only), then disable Solar fetching (since it is very likely to start failing)
                                  showMode = (SHOW_MODE_TYPE)(showMode & ~SHOW_MODE_SOLAR_BIT_MASK);
-                                 showMode = (SHOW_MODE_TYPE)(showMode & ~SHOW_MODE_WEATHER_BIT_MASK);
+                                 showSolarSelection = false;
 
+                                 prefs.begin("config", false);
+
+                                 prefs.putInt("showMode", int(showMode));
+                                 
+                                 prefs.end();
 #endif
 
                               }
@@ -2726,19 +2729,19 @@ void parseTimezones(void)
 
       tzArray[tzIndex].tzShowID = timeZones[tzIndex].tzDisplay;
 
-//      Serial.print("TZ index     = ");
-//      Serial.println(tzIndex);
-//      Serial.print("   webID     = ");
-//      Serial.println(tzArray[tzIndex].tzWebID);
-//      Serial.print("   prefsID   = ");
-//      Serial.println(tzArray[tzIndex].tzPrefsID);
-//      if (tzArray[tzIndex].tzShowID)
-//      {
-//         Serial.println("   display   = true");
-//      } else {
-//         Serial.println("   display   = false");
-//      }
-//      Serial.println("");
+      //      Serial.print("TZ index     = ");
+      //      Serial.println(tzIndex);
+      //      Serial.print("   webID     = ");
+      //      Serial.println(tzArray[tzIndex].tzWebID);
+      //      Serial.print("   prefsID   = ");
+      //      Serial.println(tzArray[tzIndex].tzPrefsID);
+      //      if (tzArray[tzIndex].tzShowID)
+      //      {
+      //         Serial.println("   display   = true");
+      //      } else {
+      //         Serial.println("   display   = false");
+      //      }
+      //      Serial.println("");
 
       tzIndex++;
    }
@@ -3862,6 +3865,7 @@ void setup(void)
 #endif
 
 #ifdef LED_BUILTIN
+   pinMode(LED_BUILTIN, OUTPUT);
    digitalWrite(LED_BUILTIN, LOW);                                             // blink OFF
 #endif
 
